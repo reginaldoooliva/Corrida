@@ -277,9 +277,9 @@ via bcrypt.
 **Requirement**: AUTH-01, AUTH-02, AUTH-05
 
 **Done when**:
-- [ ] A successful `authorize()` call creates a session
-- [ ] A failed call returns `null` (NextAuth surfaces its generic error)
-- [ ] No route file exists anywhere under `app/` for registration/signup
+- [x] A successful `authorize()` call creates a session
+- [x] A failed call returns `null` (NextAuth surfaces its generic error)
+- [x] No route file exists anywhere under `app/` for registration/signup
 
 **Tests**: none (covered end-to-end in T26)
 **Gate**: build
