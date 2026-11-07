@@ -1308,7 +1308,8 @@ requests on the matched paths to `/login`) is unchanged; see the `SPEC_DEVIATION
 file. `npm run build`/`typecheck`/`lint` also needed `NODE_OPTIONS="--max-old-space-size=2048"`
 in this session after a transient OOM under heavy background memory pressure on this machine -
 not a code issue, no script changes made for it.
-**Dispatched:** Batch 1 (Phase 1: T1-T7) dispatched 2026-11-07, pre-HEAD 4ebd525
+**Dispatched:** Batch 1 (Phase 1: T1-T7) dispatched 2026-11-07, pre-HEAD 4ebd525 - returned, all
+complete. Batch 2 (Phase 2: T8-T13) dispatched 2026-11-07, pre-HEAD 6279836
 **Walked:** none
 
 ---
