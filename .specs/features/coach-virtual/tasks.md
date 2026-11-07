@@ -297,8 +297,8 @@ via bcrypt.
 **Requirement**: AUTH-03
 
 **Done when**:
-- [ ] Protected paths redirect to `/login` when no session cookie is present
-- [ ] `/login` itself remains reachable without a session
+- [x] Protected paths redirect to `/login` when no session cookie is present
+- [x] `/login` itself remains reachable without a session
 
 **Tests**: none (covered end-to-end in T26)
 **Gate**: build
@@ -1301,6 +1301,14 @@ needed) and hand-edited to add the `LIFE-06` partial unique index; it was never 
 "index verified via psql", and "second ACTIVE insert fails" Done-when items for T3 are unchecked.
 T4's seed script and T5's live-DB-dependent checks carry the same unresolved blocker. Needs
 user-provided Supabase (or other reachable Postgres) credentials in `.env` to close out.
+
+T7's file is `proxy.ts`, not `middleware.ts` as tasks.md names it: Next.js 16 (resolved by
+`create-next-app@latest` in T1) renamed and requires the convention as `proxy.ts` -
+`middleware.ts` build-fails outright. Behavior (NextAuth `withAuth` redirecting unauthenticated
+requests on the matched paths to `/login`) is unchanged; see the `SPEC_DEVIATION` comment in the
+file. `npm run build`/`typecheck`/`lint` also needed `NODE_OPTIONS="--max-old-space-size=2048"`
+in this session after a transient OOM under heavy background memory pressure on this machine -
+not a code issue, no script changes made for it.
 **Dispatched:** Batch 1 (Phase 1: T1-T7) dispatched 2026-11-07, pre-HEAD 4ebd525
 **Walked:** none
 
