@@ -689,13 +689,13 @@ the first time.
 **Requirement**: AUTH-01, AUTH-02, AUTH-03, AUTH-05
 
 **Done when**:
-- [ ] Submitting correct credentials redirects to `/dashboard`; the e2e test asserts it
-- [ ] Submitting incorrect credentials shows the generic "invalid credentials" message; the e2e
+- [x] Submitting correct credentials redirects to `/dashboard`; the e2e test asserts it
+- [x] Submitting incorrect credentials shows the generic "invalid credentials" message; the e2e
       test asserts it
-- [ ] Visiting `/dashboard` while logged out redirects to `/login`; the e2e test asserts it
-- [ ] Visiting `/register` and `/signup` returns 404; the e2e test asserts it
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
-- [ ] Test count: 4 tests pass (no silent deletions)
+- [x] Visiting `/dashboard` while logged out redirects to `/login`; the e2e test asserts it
+- [x] Visiting `/register` and `/signup` returns 404; the e2e test asserts it
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] Test count: 4 tests pass (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full
