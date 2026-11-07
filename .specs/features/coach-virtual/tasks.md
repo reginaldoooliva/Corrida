@@ -425,12 +425,12 @@ Prisma transaction.
 **Requirement**: VDOT-01, VDOT-03, PLAN-01..08 (orchestration)
 
 **Done when**:
-- [ ] A 10km plan ~10 weeks out from a manually entered 5km time produces ~10 `Week` rows with the
+- [x] A 10km plan ~10 weeks out from a manually entered 5km time produces ~10 `Week` rows with the
       expected phase proportions and every `Session` has a non-null planned pace
-- [ ] The created `VdotHistory` row's `source` matches the input method (`test`/`manual`)
-- [ ] A failure mid-generation leaves no partial rows (transaction rollback)
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 4 tests pass (no silent deletions)
+- [x] The created `VdotHistory` row's `source` matches the input method (`test`/`manual`)
+- [x] A failure mid-generation leaves no partial rows (transaction rollback)
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 4 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick

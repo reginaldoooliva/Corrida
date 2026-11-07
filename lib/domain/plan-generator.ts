@@ -1,6 +1,8 @@
-import { Phase, RaceType, SessionType } from "@prisma/client";
+import { Phase, RaceType, SessionType, VdotSource, type Plan } from "@prisma/client";
 
-import { paceForVdot } from "./vdot";
+import { prisma } from "@/lib/prisma";
+
+import { calculateVdot, isPlausibleResult, paceForVdot } from "./vdot";
 
 /** Day of week, 0 = Sunday .. 6 = Saturday (matches `Date#getUTCDay`). */
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -131,4 +133,68 @@ export function generateSessions(
       Math.round(((plannedDurationMin * 60) / plannedPaceSecPerKm) * 100) / 100;
     return { date, type, plannedPaceSecPerKm, plannedDistanceKm, plannedDurationMin };
   });
+}
+
+export interface CreatePlanInput {
+  userId: string;
+  raceType: RaceType;
+  raceDate: Date;
+  daysPerWeek: Weekday[];
+  /** How the initial VDOT was established (spec VDOT-03). */
+  vdotSource: typeof VdotSource.TEST | typeof VdotSource.MANUAL;
+  result: { distanceKm: number; timeSec: number };
+  today: Date;
+}
+
+export async function createPlan(
+  input: CreatePlanInput,
+): Promise<{ plan: Plan; belowMinimum: boolean }> {
+  const { userId, raceType, raceDate, daysPerWeek, vdotSource, result, today } = input;
+
+  if (!validateDaysPerWeek(daysPerWeek)) {
+    throw new Error("Choose between 3 and 6 training days per week.");
+  }
+  if (!isPlausibleResult(result.distanceKm, result.timeSec)) {
+    throw new Error("The time entered is not plausible for that distance.");
+  }
+
+  const { weeks, belowMinimum } = computePlanWeeks(raceType, raceDate, today);
+  const vdot = calculateVdot(result.distanceKm, result.timeSec);
+  const startDay = utcDayNumber(today) * DAY_MS;
+
+  const plan = await prisma.$transaction(async (tx) => {
+    const plan = await tx.plan.create({
+      data: {
+        userId,
+        raceType,
+        raceDate,
+        startDate: new Date(startDay),
+        daysPerWeek,
+        initialVdot: vdot,
+        currentVdot: vdot,
+      },
+    });
+    await tx.vdotHistory.create({
+      data: { planId: plan.id, date: new Date(startDay), vdot, source: vdotSource },
+    });
+
+    for (const assignment of splitPhases(weeks)) {
+      const startDate = new Date(startDay + (assignment.weekNumber - 1) * 7 * DAY_MS);
+      await tx.week.create({
+        data: {
+          planId: plan.id,
+          weekNumber: assignment.weekNumber,
+          phase: assignment.phase,
+          startDate,
+          endDate: new Date(startDate.getTime() + 6 * DAY_MS),
+          sessions: {
+            create: generateSessions({ ...assignment, startDate }, daysPerWeek, vdot),
+          },
+        },
+      });
+    }
+    return plan;
+  });
+
+  return { plan, belowMinimum };
 }

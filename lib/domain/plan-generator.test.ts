@@ -1,8 +1,70 @@
-import { Phase, RaceType, SessionType } from "@prisma/client";
-import { describe, expect, it } from "vitest";
+import { Phase, RaceType, SessionType, VdotSource } from "@prisma/client";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// In-memory stand-in for the database. Writes made through the transaction client are staged and
+// only land in `db` when the transaction callback resolves; writes made through the global client
+// land in `db` immediately (so they would survive a rollback, as on a real database).
+type Row = Record<string, unknown>;
+type Store = { plans: Row[]; vdotHistory: Row[]; weeks: Row[] };
+
+const { db, failWeekCreateOnCall, modelsWritingTo } = vi.hoisted(() => {
+  const db: Store = { plans: [], vdotHistory: [], weeks: [] };
+  const failWeekCreateOnCall = { n: 0 };
+
+  function modelsWritingTo(store: Store) {
+    let weekCalls = 0;
+    return {
+      plan: {
+        create: async ({ data }: { data: Row }) => {
+          const row = { id: `plan-${store.plans.length + 1}`, ...data };
+          store.plans.push(row);
+          return row;
+        },
+      },
+      vdotHistory: {
+        create: async ({ data }: { data: Row }) => {
+          const row = { id: `vh-${store.vdotHistory.length + 1}`, ...data };
+          store.vdotHistory.push(row);
+          return row;
+        },
+      },
+      week: {
+        create: async ({ data }: { data: Row & { sessions?: { create: Row[] } } }) => {
+          weekCalls += 1;
+          if (weekCalls === failWeekCreateOnCall.n) throw new Error("connection lost");
+          const { sessions, ...rest } = data;
+          const row = {
+            id: `week-${store.weeks.length + 1}`,
+            ...rest,
+            sessions: sessions?.create ?? [],
+          };
+          store.weeks.push(row);
+          return row;
+        },
+      },
+    };
+  }
+
+  return { db, failWeekCreateOnCall, modelsWritingTo };
+});
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    ...modelsWritingTo(db),
+    $transaction: async <T,>(fn: (tx: unknown) => Promise<T>) => {
+      const staged: Store = { plans: [], vdotHistory: [], weeks: [] };
+      const result = await fn(modelsWritingTo(staged));
+      db.plans.push(...staged.plans);
+      db.vdotHistory.push(...staged.vdotHistory);
+      db.weeks.push(...staged.weeks);
+      return result;
+    },
+  },
+}));
 
 import {
   computePlanWeeks,
+  createPlan,
   generateSessions,
   splitPhases,
   validateDaysPerWeek,
@@ -224,6 +286,115 @@ describe("plan-generator", () => {
       const slow = generateSessions(week(Phase.BUILD), [1, 3, 6], 35);
       const fast = generateSessions(week(Phase.BUILD), [1, 3, 6], 60);
       expect(total(fast, "plannedDistanceKm")).toBeGreaterThan(total(slow, "plannedDistanceKm"));
+    });
+  });
+
+  describe("createPlan", () => {
+    // A 10km race exactly 10 weeks out, VDOT established from a manual 5km in 19:57
+    // (Daniels table: VDOT 50).
+    const input = {
+      userId: "user-1",
+      raceType: RaceType.TEN_K,
+      raceDate: new Date("2027-01-16T00:00:00Z"),
+      daysPerWeek: [1, 3, 6] as Weekday[],
+      vdotSource: VdotSource.MANUAL,
+      result: { distanceKm: 5, timeSec: 19 * 60 + 57 },
+      today: TODAY,
+    };
+    type WeekRow = {
+      planId: string;
+      weekNumber: number;
+      phase: Phase;
+      startDate: Date;
+      endDate: Date;
+      sessions: Row[];
+    };
+
+    beforeEach(() => {
+      db.plans.length = 0;
+      db.vdotHistory.length = 0;
+      db.weeks.length = 0;
+      failWeekCreateOnCall.n = 0;
+    });
+
+    it("createPlan generates a 10-week 10km plan with the expected phases and a planned pace on every session", async () => {
+      const { plan, belowMinimum } = await createPlan({ ...input });
+
+      expect(belowMinimum).toBe(false);
+      expect(db.plans).toHaveLength(1);
+      expect(db.plans[0]).toMatchObject({
+        userId: "user-1",
+        raceType: RaceType.TEN_K,
+        raceDate: input.raceDate,
+        daysPerWeek: [1, 3, 6],
+        startDate: new Date("2026-11-07T00:00:00Z"),
+      });
+      expect(Math.abs((db.plans[0].initialVdot as number) - 50)).toBeLessThanOrEqual(0.1);
+      expect(db.plans[0].currentVdot).toBe(db.plans[0].initialVdot);
+      expect(plan).toEqual(db.plans[0]);
+
+      const weeks = db.weeks as WeekRow[];
+      expect(weeks).toHaveLength(10);
+      expect(weeks.every((w) => w.planId === plan.id)).toBe(true);
+      expect(weeks.map((w) => w.weekNumber)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      // 10 weeks: taper 1; remaining 9 -> base 4, build 3, peak 2.
+      expect(weeks.map((w) => w.phase)).toEqual([
+        Phase.BASE, Phase.BASE, Phase.BASE, Phase.BASE,
+        Phase.BUILD, Phase.BUILD, Phase.BUILD,
+        Phase.PEAK, Phase.PEAK,
+        Phase.TAPER,
+      ]);
+      weeks.forEach((w, i) => {
+        expect(w.startDate).toEqual(new Date(Date.UTC(2026, 10, 7 + i * 7)));
+        expect(w.endDate).toEqual(new Date(Date.UTC(2026, 10, 7 + i * 7 + 6)));
+        expect(w.sessions).toHaveLength(3);
+        for (const s of w.sessions) {
+          expect(s.plannedPaceSecPerKm).not.toBeNull();
+          expect(Number.isInteger(s.plannedPaceSecPerKm)).toBe(true);
+          expect(s.plannedPaceSecPerKm as number).toBeGreaterThan(0);
+        }
+      });
+    });
+
+    it("createPlan records VdotHistory with source test or manual", async () => {
+      for (const vdotSource of [VdotSource.TEST, VdotSource.MANUAL]) {
+        db.plans.length = 0;
+        db.vdotHistory.length = 0;
+        db.weeks.length = 0;
+
+        const { plan } = await createPlan({ ...input, vdotSource });
+
+        expect(db.vdotHistory).toHaveLength(1);
+        expect(db.vdotHistory[0]).toMatchObject({
+          planId: plan.id,
+          source: vdotSource,
+          vdot: plan.initialVdot,
+          date: new Date("2026-11-07T00:00:00Z"),
+        });
+      }
+    });
+
+    it("createPlan leaves no partial rows when generation fails mid-way", async () => {
+      failWeekCreateOnCall.n = 4;
+
+      await expect(createPlan({ ...input })).rejects.toThrow("connection lost");
+
+      expect(db.plans).toEqual([]);
+      expect(db.vdotHistory).toEqual([]);
+      expect(db.weeks).toEqual([]);
+    });
+
+    it("createPlan rejects an implausible result or an invalid day count without writing anything", async () => {
+      await expect(
+        createPlan({ ...input, result: { distanceKm: 5, timeSec: 119 } }),
+      ).rejects.toThrow();
+      await expect(
+        createPlan({ ...input, daysPerWeek: [1, 3] as Weekday[] }),
+      ).rejects.toThrow(/3.*6/);
+
+      expect(db.plans).toEqual([]);
+      expect(db.vdotHistory).toEqual([]);
+      expect(db.weeks).toEqual([]);
     });
   });
 
