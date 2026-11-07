@@ -13,7 +13,9 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/client": "6.19.3",
     "next": "16.4.5",
+    "prisma": "6.19.3",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
@@ -27,5 +29,12 @@
     "tsx": "^4.19.0",
     "typescript": "^5",
     "vitest": "^2.1.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "esbuild@0.21.5": true,
+    "@prisma/client@6.19.3": true,
+    "prisma@6.19.3": true,
+    "@prisma/engines@6.19.3": true
   }
 }

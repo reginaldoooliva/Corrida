@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum RaceType {
+  FIVE_K
+  TEN_K
+  HALF
+  MARATHON
+}
+
+enum PlanStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum VdotSource {
+  TEST
+  MANUAL
+  RACE
+  RECALC
+}
+
+enum Phase {
+  BASE
+  BUILD
+  PEAK
+  TAPER
+}
+
+enum SessionType {
+  EASY
+  LONG
+  TEMPO
+  INTERVAL
+}
+
+enum Decision {
+  REDUCE
+  MAINTAIN
+  PROGRESS
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  plans Plan[]
+}
+
+model Plan {
+  id           String     @id @default(cuid())
+  userId       String
+  raceType     RaceType
+  raceDate     DateTime
+  startDate    DateTime
+  daysPerWeek  Int[]
+  status       PlanStatus @default(ACTIVE)
+  initialVdot  Float
+  currentVdot  Float
+  createdAt    DateTime   @default(now())
+
+  user        User          @relation(fields: [userId], references: [id])
+  vdotHistory VdotHistory[]
+  weeks       Week[]
+  raceResult  RaceResult?
+}
+
+model VdotHistory {
+  id     String     @id @default(cuid())
+  planId String
+  date   DateTime
+  vdot   Float
+  source VdotSource
+
+  plan Plan @relation(fields: [planId], references: [id])
+}
+
+model Week {
+  id           String    @id @default(cuid())
+  planId       String
+  weekNumber   Int
+  phase        Phase
+  startDate    DateTime
+  endDate      DateTime
+  reassessedAt DateTime?
+
+  plan              Plan              @relation(fields: [planId], references: [id])
+  sessions          Session[]
+  weeklyAdjustment  WeeklyAdjustment?
+}
+
+model Session {
+  id                   String  @id @default(cuid())
+  weekId               String
+  type                 SessionType
+  date                 DateTime
+  plannedPaceSecPerKm  Int
+  plannedDistanceKm    Float?
+  plannedDurationMin   Int?
+
+  week       Week        @relation(fields: [weekId], references: [id])
+  workoutLog WorkoutLog?
+}
+
+model WorkoutLog {
+  id                 String   @id @default(cuid())
+  sessionId          String   @unique
+  actualPaceSecPerKm Int
+  actualDistanceKm   Float
+  actualDurationMin  Int
+  rpe                Int
+  notes              String?
+  loggedAt           DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id])
+}
+
+model WeeklyAdjustment {
+  id                     String   @id @default(cuid())
+  weekId                 String   @unique
+  paceDeviationTriggered Boolean
+  rpeTriggered           Boolean
+  missedTriggered        Boolean
+  decision               Decision
+  adjustmentPct          Int
+  computedAt             DateTime @default(now())
+
+  week Week @relation(fields: [weekId], references: [id])
+}
+
+model RaceResult {
+  id            String   @id @default(cuid())
+  planId        String   @unique
+  finishTimeSec Int
+  date          DateTime
+  vdotComputed  Float
+
+  plan Plan @relation(fields: [planId], references: [id])
+}

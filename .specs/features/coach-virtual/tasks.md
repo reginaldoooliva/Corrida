@@ -195,9 +195,9 @@ with ESLint/Prettier and the npm scripts this plan relies on (`build`, `typechec
 **Requirement**: - (schema backs every model-touching requirement below)
 
 **Done when**:
-- [ ] `npx prisma validate` passes
-- [ ] `npx prisma generate` produces a client with no type errors
-- [ ] Every model/enum from design.md's Data Models section is present
+- [x] `npx prisma validate` passes
+- [x] `npx prisma generate` produces a client with no type errors
+- [x] Every model/enum from design.md's Data Models section is present
 
 **Tests**: none
 **Gate**: build
