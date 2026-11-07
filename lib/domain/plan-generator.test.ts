@@ -1,7 +1,15 @@
-import { Phase, RaceType } from "@prisma/client";
+import { Phase, RaceType, SessionType } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
-import { computePlanWeeks, splitPhases, validateDaysPerWeek } from "./plan-generator";
+import {
+  computePlanWeeks,
+  generateSessions,
+  splitPhases,
+  validateDaysPerWeek,
+  type SessionDraft,
+  type Weekday,
+} from "./plan-generator";
+import { paceForVdot } from "./vdot";
 
 function phaseCounts(totalWeeks: number) {
   const counts = { BASE: 0, BUILD: 0, PEAK: 0, TAPER: 0 };
@@ -104,6 +112,118 @@ describe("plan-generator", () => {
         expect(taper).toBeLessThanOrEqual(3);
       }
       expect(splitPhases(1)).toEqual([{ weekNumber: 1, phase: Phase.TAPER }]);
+    });
+  });
+
+  describe("generateSessions", () => {
+    const WEEK_START = new Date("2026-11-07T00:00:00Z"); // a Saturday
+    const VDOT = 45;
+    const DAY_SETS: Weekday[][] = [
+      [1, 3, 6],
+      [0, 2, 4, 6],
+      [1, 2, 3, 5, 6],
+      [0, 1, 2, 3, 4, 5],
+    ];
+    const week = (phase: Phase) => ({ weekNumber: 1, phase, startDate: WEEK_START });
+    const quality = (sessions: SessionDraft[]) =>
+      sessions.filter(
+        (s) => s.type === SessionType.TEMPO || s.type === SessionType.INTERVAL,
+      ).length;
+    const total = (sessions: SessionDraft[], key: "plannedDistanceKm" | "plannedDurationMin") =>
+      sessions.reduce((sum, s) => sum + s[key], 0);
+
+    it("generateSessions places a session on each selected day only", () => {
+      const sessions = generateSessions(week(Phase.BASE), [1, 3, 5], VDOT);
+      expect(sessions.map((s) => s.date.toISOString().slice(0, 10))).toEqual([
+        "2026-11-09", // Monday
+        "2026-11-11", // Wednesday
+        "2026-11-13", // Friday
+      ]);
+
+      const weekEnd = WEEK_START.getTime() + 6 * 24 * 60 * 60 * 1000;
+      for (const days of DAY_SETS) {
+        for (const phase of Object.values(Phase)) {
+          for (const s of generateSessions(week(phase), days, VDOT)) {
+            expect(days).toContain(s.date.getUTCDay());
+            expect(s.date.getTime()).toBeGreaterThanOrEqual(WEEK_START.getTime());
+            expect(s.date.getTime()).toBeLessThanOrEqual(weekEnd);
+          }
+        }
+      }
+    });
+
+    it("generateSessions creates exactly one session per selected day for 3 to 6 days", () => {
+      for (const days of DAY_SETS) {
+        for (const phase of Object.values(Phase)) {
+          const sessions = generateSessions(week(phase), days, VDOT);
+          expect(sessions).toHaveLength(days.length);
+          expect(new Set(sessions.map((s) => s.date.getUTCDay()))).toEqual(new Set(days));
+        }
+      }
+    });
+
+    it("generateSessions weights Fácil and Longão in base and Tempo and Intervalado in build and peak", () => {
+      for (const days of DAY_SETS) {
+        const base = generateSessions(week(Phase.BASE), days, VDOT);
+        const build = generateSessions(week(Phase.BUILD), days, VDOT);
+        const peak = generateSessions(week(Phase.PEAK), days, VDOT);
+
+        // Base: Easy/Long make up the majority of the week.
+        expect(base.length - quality(base)).toBeGreaterThan(base.length / 2);
+        expect(base.some((s) => s.type === SessionType.LONG)).toBe(true);
+        // Build/peak: more Tempo/Interval than base for the same days.
+        expect(quality(build)).toBeGreaterThan(quality(base));
+        expect(quality(peak)).toBeGreaterThan(quality(base));
+        expect(quality(peak)).toBeGreaterThanOrEqual(quality(build));
+      }
+      // With 3 days, Tempo/Interval are the majority in build and peak.
+      expect(quality(generateSessions(week(Phase.BUILD), [1, 3, 6], VDOT))).toBe(2);
+      expect(quality(generateSessions(week(Phase.PEAK), [1, 3, 6], VDOT))).toBe(2);
+    });
+
+    it("generateSessions reduces distance and duration in a taper week vs the equivalent non-taper week", () => {
+      for (const days of DAY_SETS) {
+        const taper = generateSessions(week(Phase.TAPER), days, VDOT);
+        for (const phase of [Phase.BASE, Phase.BUILD, Phase.PEAK]) {
+          const normal = generateSessions(week(phase), days, VDOT);
+          expect(total(taper, "plannedDistanceKm")).toBeLessThan(total(normal, "plannedDistanceKm"));
+          expect(total(taper, "plannedDurationMin")).toBeLessThan(total(normal, "plannedDurationMin"));
+          // Same session type: the taper version is shorter.
+          for (const t of taper) {
+            const same = normal.find((s) => s.type === t.type);
+            if (!same) continue;
+            expect(t.plannedDurationMin).toBeLessThan(same.plannedDurationMin);
+            expect(t.plannedDistanceKm).toBeLessThan(same.plannedDistanceKm);
+          }
+        }
+      }
+    });
+
+    it("generateSessions reduces intensity in a taper week", () => {
+      for (const days of DAY_SETS) {
+        const taper = generateSessions(week(Phase.TAPER), days, VDOT);
+        const peak = generateSessions(week(Phase.PEAK), days, VDOT);
+        expect(quality(taper)).toBeLessThan(quality(peak));
+      }
+    });
+
+    it("generateSessions derives planned pace and distance from the plan VDOT and session type", () => {
+      for (const vdot of [35, 45, 60]) {
+        for (const phase of Object.values(Phase)) {
+          for (const s of generateSessions(week(phase), [0, 1, 2, 3, 4, 5], vdot)) {
+            expect(s.plannedPaceSecPerKm).toBe(paceForVdot(vdot, s.type).secPerKm);
+            // distance = duration / pace
+            expect(s.plannedDistanceKm).toBeCloseTo(
+              (s.plannedDurationMin * 60) / s.plannedPaceSecPerKm,
+              1,
+            );
+          }
+        }
+      }
+      // A fitter runner covers more ground in the same planned session.
+      const slow = generateSessions(week(Phase.BUILD), [1, 3, 6], 35);
+      const fast = generateSessions(week(Phase.BUILD), [1, 3, 6], 60);
+      expect(total(fast, "plannedDistanceKm")).toBeGreaterThan(total(slow, "plannedDistanceKm"));
     });
   });
 

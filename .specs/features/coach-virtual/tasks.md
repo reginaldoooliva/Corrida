@@ -402,11 +402,11 @@ weighted toward Easy/Long in base and Tempo/Interval in build/peak, reduced in t
 **Requirement**: PLAN-03, PLAN-06
 
 **Done when**:
-- [ ] Generated sessions land only on the selected weekdays, one per day
-- [ ] A base-phase week is weighted toward Easy/Long; a build/peak week toward Tempo/Interval
-- [ ] A taper week has reduced distance/duration vs. the equivalent non-taper week
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 6 tests pass (no silent deletions)
+- [x] Generated sessions land only on the selected weekdays, one per day
+- [x] A base-phase week is weighted toward Easy/Long; a build/peak week toward Tempo/Interval
+- [x] A taper week has reduced distance/duration vs. the equivalent non-taper week
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 6 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick

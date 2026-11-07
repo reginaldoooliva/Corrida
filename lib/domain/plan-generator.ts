@@ -1,4 +1,6 @@
-import { Phase, RaceType } from "@prisma/client";
+import { Phase, RaceType, SessionType } from "@prisma/client";
+
+import { paceForVdot } from "./vdot";
 
 /** Day of week, 0 = Sunday .. 6 = Saturday (matches `Date#getUTCDay`). */
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -56,4 +58,77 @@ export function splitPhases(totalWeeks: number): PhaseAssignment[] {
     ...Array<Phase>(taper).fill(Phase.TAPER),
   ];
   return phases.map((phase, i) => ({ weekNumber: i + 1, phase }));
+}
+
+export interface SessionDraft {
+  date: Date;
+  type: SessionType;
+  plannedPaceSecPerKm: number;
+  plannedDistanceKm: number;
+  plannedDurationMin: number;
+}
+
+const { EASY: E, LONG: L, TEMPO: T, INTERVAL: I } = SessionType;
+
+// Session types per phase, indexed by days per week, assigned in date order (spec PLAN-06):
+// base leans on Easy/Long, build/peak add Tempo/Interval, taper keeps one light Tempo.
+const PHASE_PATTERNS: Record<Phase, Record<number, SessionType[]>> = {
+  [Phase.BASE]: {
+    3: [E, E, L],
+    4: [E, E, E, L],
+    5: [E, E, E, E, L],
+    6: [E, E, E, E, E, L],
+  },
+  [Phase.BUILD]: {
+    3: [T, I, L],
+    4: [T, E, I, L],
+    5: [T, E, I, E, L],
+    6: [T, E, I, E, E, L],
+  },
+  [Phase.PEAK]: {
+    3: [I, T, L],
+    4: [I, E, T, L],
+    5: [I, E, T, I, L],
+    6: [I, E, T, E, I, L],
+  },
+  [Phase.TAPER]: {
+    3: [E, T, E],
+    4: [E, T, E, E],
+    5: [E, T, E, E, E],
+    6: [E, T, E, E, E, E],
+  },
+};
+
+// Planned minutes per session type; distance follows from the VDOT pace (spec PLAN-07).
+const DURATION_MIN: Record<SessionType, number> = {
+  [SessionType.EASY]: 40,
+  [SessionType.LONG]: 75,
+  [SessionType.TEMPO]: 25,
+  [SessionType.INTERVAL]: 20,
+};
+const TAPER_VOLUME_FACTOR = 0.6;
+
+export function generateSessions(
+  week: PhaseAssignment & { startDate: Date },
+  days: Weekday[],
+  vdot: number,
+): SessionDraft[] {
+  const start = utcDayNumber(week.startDate) * DAY_MS;
+  const dates: Date[] = [];
+  for (let offset = 0; offset < 7; offset++) {
+    const date = new Date(start + offset * DAY_MS);
+    if (days.includes(date.getUTCDay() as Weekday)) dates.push(date);
+  }
+
+  const pattern = PHASE_PATTERNS[week.phase][dates.length];
+  const volume = week.phase === Phase.TAPER ? TAPER_VOLUME_FACTOR : 1;
+
+  return dates.map((date, i) => {
+    const type = pattern[i];
+    const plannedPaceSecPerKm = paceForVdot(vdot, type).secPerKm;
+    const plannedDurationMin = Math.round(DURATION_MIN[type] * volume);
+    const plannedDistanceKm =
+      Math.round(((plannedDurationMin * 60) / plannedPaceSecPerKm) * 100) / 100;
+    return { date, type, plannedPaceSecPerKm, plannedDistanceKm, plannedDurationMin };
+  });
 }
