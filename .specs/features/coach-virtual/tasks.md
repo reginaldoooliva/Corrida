@@ -488,12 +488,12 @@ originally generated next week untouched.
 **Requirement**: ADJ-02, ADJ-03, ADJ-04 (effects)
 
 **Done when**:
-- [ ] `reduce` output has every remaining session's distance/duration at 80% of the original, and
+- [x] `reduce` output has every remaining session's distance/duration at 80% of the original, and
       Tempo/Interval sessions stepped down one intensity level
-- [ ] `maintain` output is identical to the current week's sessions (types, paces, distances)
-- [ ] `progress` output is unchanged from the originally generated next week
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 3 tests pass (no silent deletions)
+- [x] `maintain` output is identical to the current week's sessions (types, paces, distances)
+- [x] `progress` output is unchanged from the originally generated next week
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 3 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick

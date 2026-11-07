@@ -1,4 +1,7 @@
-import { Decision } from "@prisma/client";
+import { Decision, SessionType } from "@prisma/client";
+
+import type { SessionDraft } from "./plan-generator";
+import { paceForVdot } from "./vdot";
 
 export interface WeekWithLogs {
   sessions: Array<{
@@ -40,4 +43,41 @@ export function decide(signals: Signals): Decision {
   if (triggered === 0) return Decision.PROGRESS;
   if (triggered === 1) return Decision.MAINTAIN;
   return Decision.REDUCE;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const REDUCE_FACTOR = 0.8;
+// One intensity level down (spec ADJ-02): Tempo runs at Easy pace, Interval at Tempo pace.
+const STEP_DOWN: Partial<Record<SessionType, SessionType>> = {
+  [SessionType.TEMPO]: SessionType.EASY,
+  [SessionType.INTERVAL]: SessionType.TEMPO,
+};
+
+// SPEC_DEVIATION: design.md lists `applyDecision(decision, nextWeekDraft)`; this takes a third
+// `{ currentWeek, vdot }` argument.
+// Reason: `maintain` must clone the current week (ADJ-03) and `reduce` must re-derive the stepped-down
+// pace (ADJ-02), and neither is recoverable from the next week's draft alone.
+export function applyDecision(
+  decision: Decision,
+  nextWeekDraft: SessionDraft[],
+  context: { currentWeek: SessionDraft[]; vdot: number },
+): SessionDraft[] {
+  if (decision === Decision.PROGRESS) return nextWeekDraft;
+
+  if (decision === Decision.MAINTAIN) {
+    // Same sessions on the same weekdays, one week later; periodization does not advance.
+    return context.currentWeek.map((s) => ({ ...s, date: new Date(s.date.getTime() + 7 * DAY_MS) }));
+  }
+
+  return nextWeekDraft.map((s) => {
+    const type = STEP_DOWN[s.type] ?? s.type;
+    return {
+      ...s,
+      type,
+      plannedPaceSecPerKm:
+        type === s.type ? s.plannedPaceSecPerKm : paceForVdot(context.vdot, type).secPerKm,
+      plannedDistanceKm: Math.round(s.plannedDistanceKm * REDUCE_FACTOR * 100) / 100,
+      plannedDurationMin: Math.round(s.plannedDurationMin * REDUCE_FACTOR),
+    };
+  });
 }
