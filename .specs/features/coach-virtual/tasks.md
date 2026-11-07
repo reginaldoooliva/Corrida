@@ -173,9 +173,9 @@ with ESLint/Prettier and the npm scripts this plan relies on (`build`, `typechec
 **Requirement**: -
 
 **Done when**:
-- [ ] `git init` has run and the initial scaffold is the first commit
-- [ ] `npm run build`, `npm run typecheck`, `npm run lint` all exit 0 against the empty scaffold
-- [ ] `npm run test` and `npm run test:e2e` run (even with zero tests) without erroring
+- [x] `git init` has run and the initial scaffold is the first commit
+- [x] `npm run build`, `npm run typecheck`, `npm run lint` all exit 0 against the empty scaffold
+- [x] `npm run test` and `npm run test:e2e` run (even with zero tests) without erroring
 
 **Tests**: none
 **Gate**: build
@@ -1293,7 +1293,7 @@ Proof: run e2e | ✓ dashboard.spec.ts > after the last taper week ends before t
 The feature's live state, written as it happens - a compaction gives no warning.
 
 **Settled mid-build:** none
-**Dispatched:** none
+**Dispatched:** Batch 1 (Phase 1: T1-T7) dispatched 2026-11-07, pre-HEAD 4ebd525
 **Walked:** none
 
 ---
