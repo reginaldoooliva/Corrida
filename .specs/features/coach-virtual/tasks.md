@@ -555,10 +555,10 @@ and persists a `WeeklyAdjustment` row.
 **Requirement**: LIFE-01
 
 **Done when**:
-- [ ] A plan with a past `raceDate` becomes `archived` after the call
-- [ ] A plan with a future `raceDate` is left `active`
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 2 tests pass (no silent deletions)
+- [x] A plan with a past `raceDate` becomes `archived` after the call
+- [x] A plan with a future `raceDate` is left `active`
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 2 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick
