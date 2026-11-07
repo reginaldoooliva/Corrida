@@ -381,10 +381,10 @@ via bcrypt.
 **Requirement**: PLAN-05
 
 **Done when**:
-- [ ] A 10-week and an 18-week plan both produce phase-week counts matching the documented formula
-- [ ] Taper never exceeds 3 weeks or drops below 1
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 4 tests pass (no silent deletions)
+- [x] A 10-week and an 18-week plan both produce phase-week counts matching the documented formula
+- [x] Taper never exceeds 3 weeks or drops below 1
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 4 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick

@@ -1,7 +1,13 @@
-import { RaceType } from "@prisma/client";
+import { Phase, RaceType } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
-import { computePlanWeeks, validateDaysPerWeek } from "./plan-generator";
+import { computePlanWeeks, splitPhases, validateDaysPerWeek } from "./plan-generator";
+
+function phaseCounts(totalWeeks: number) {
+  const counts = { BASE: 0, BUILD: 0, PEAK: 0, TAPER: 0 };
+  for (const week of splitPhases(totalWeeks)) counts[week.phase] += 1;
+  return counts;
+}
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TODAY = new Date("2026-11-07T15:30:00Z");
@@ -58,6 +64,46 @@ describe("plan-generator", () => {
       expect(() =>
         computePlanWeeks("ULTRA" as RaceType, daysFromToday(140), TODAY),
       ).toThrow();
+    });
+  });
+
+  describe("splitPhases", () => {
+    it("splitPhases assigns taper, base, build and peak in the documented proportions for a 10-week plan", () => {
+      // taper = ceil(1.0) = 1; remaining 9: build floor(3.15) = 3, peak floor(2.25) = 2, base 4.
+      const weeks = splitPhases(10);
+      expect(weeks.map((w) => w.weekNumber)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      expect(weeks.map((w) => w.phase)).toEqual([
+        Phase.BASE, Phase.BASE, Phase.BASE, Phase.BASE,
+        Phase.BUILD, Phase.BUILD, Phase.BUILD,
+        Phase.PEAK, Phase.PEAK,
+        Phase.TAPER,
+      ]);
+    });
+
+    it("splitPhases assigns taper, base, build and peak in the documented proportions for an 18-week plan", () => {
+      // taper = ceil(1.8) = 2; remaining 16: build floor(5.6) = 5, peak floor(4.0) = 4, base 7.
+      const weeks = splitPhases(18);
+      expect(weeks).toHaveLength(18);
+      expect(phaseCounts(18)).toEqual({ BASE: 7, BUILD: 5, PEAK: 4, TAPER: 2 });
+      expect(weeks.slice(0, 7).every((w) => w.phase === Phase.BASE)).toBe(true);
+      expect(weeks.slice(7, 12).every((w) => w.phase === Phase.BUILD)).toBe(true);
+      expect(weeks.slice(12, 16).every((w) => w.phase === Phase.PEAK)).toBe(true);
+      expect(weeks.slice(16).every((w) => w.phase === Phase.TAPER)).toBe(true);
+    });
+
+    it("splitPhases never assigns more than 3 taper weeks", () => {
+      expect(phaseCounts(30).TAPER).toBe(3);
+      expect(phaseCounts(40).TAPER).toBe(3);
+      expect(phaseCounts(52).TAPER).toBe(3);
+    });
+
+    it("splitPhases always assigns at least 1 taper week", () => {
+      for (let totalWeeks = 1; totalWeeks <= 52; totalWeeks++) {
+        const taper = phaseCounts(totalWeeks).TAPER;
+        expect(taper).toBeGreaterThanOrEqual(1);
+        expect(taper).toBeLessThanOrEqual(3);
+      }
+      expect(splitPhases(1)).toEqual([{ weekNumber: 1, phase: Phase.TAPER }]);
     });
   });
 

@@ -1,4 +1,4 @@
-import { RaceType } from "@prisma/client";
+import { Phase, RaceType } from "@prisma/client";
 
 /** Day of week, 0 = Sunday .. 6 = Saturday (matches `Date#getUTCDay`). */
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -32,4 +32,28 @@ export function computePlanWeeks(
 
 export function validateDaysPerWeek(days: Weekday[]): boolean {
   return days.length >= 3 && days.length <= 6;
+}
+
+export interface PhaseAssignment {
+  /** 1-based position of the week within the plan. */
+  weekNumber: number;
+  phase: Phase;
+}
+
+// Spec PLAN-05: taper = ceil(10% of N) clamped to [1,3]; of the remaining weeks,
+// base 40% / build 35% / peak 25%, with the rounding remainder added to base.
+export function splitPhases(totalWeeks: number): PhaseAssignment[] {
+  const taper = Math.min(totalWeeks, 3, Math.max(1, Math.ceil(totalWeeks * 0.1)));
+  const remaining = totalWeeks - taper;
+  const build = Math.floor(remaining * 0.35);
+  const peak = Math.floor(remaining * 0.25);
+  const base = remaining - build - peak;
+
+  const phases: Phase[] = [
+    ...Array<Phase>(base).fill(Phase.BASE),
+    ...Array<Phase>(build).fill(Phase.BUILD),
+    ...Array<Phase>(peak).fill(Phase.PEAK),
+    ...Array<Phase>(taper).fill(Phase.TAPER),
+  ];
+  return phases.map((phase, i) => ({ weekNumber: i + 1, phase }));
 }
