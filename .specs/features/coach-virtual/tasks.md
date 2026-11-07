@@ -255,11 +255,11 @@ via bcrypt.
 **Requirement**: AUTH-01, AUTH-02, AUTH-04
 
 **Done when**:
-- [ ] `verifyCredentials` returns `{ id }` for correct credentials, `null` for incorrect
-- [ ] A test asserts the stored `passwordHash` is bcrypt-shaped (`$2...`), never equal to the
+- [x] `verifyCredentials` returns `{ id }` for correct credentials, `null` for incorrect
+- [x] A test asserts the stored `passwordHash` is bcrypt-shaped (`$2...`), never equal to the
       plaintext password
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 3 tests pass (no silent deletions)
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 3 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick
