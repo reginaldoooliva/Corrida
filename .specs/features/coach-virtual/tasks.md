@@ -597,12 +597,12 @@ else the previous plan's `currentVdot`.
 **Requirement**: LIFE-04, LIFE-05
 
 **Done when**:
-- [ ] With a `RaceResult` present, returns the VDOT computed from it
-- [ ] With no `RaceResult`, returns the archived plan's last `currentVdot`
-- [ ] With no previous plan at all, returns `undefined`/`null` (first-ever plan falls through to the
+- [x] With a `RaceResult` present, returns the VDOT computed from it
+- [x] With no `RaceResult`, returns the archived plan's last `currentVdot`
+- [x] With no previous plan at all, returns `undefined`/`null` (first-ever plan falls through to the
       normal VDOT-establishment flow)
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 3 tests pass (no silent deletions)
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 3 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick

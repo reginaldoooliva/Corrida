@@ -18,10 +18,18 @@ const { db, modelsFor } = vi.hoisted(() => {
     };
     return {
       plan: {
-        findUniqueOrThrow: async ({ where }: { where: { id: string } }) => {
+        findUniqueOrThrow: async ({
+          where,
+          include,
+        }: {
+          where: { id: string };
+          include?: { raceResult?: boolean };
+        }) => {
           const plan = store.plans.find((p) => p.id === where.id);
           if (!plan) throw new Error(`No plan ${where.id}`);
-          return clone(plan);
+          if (!include?.raceResult) return clone(plan);
+          const raceResult = store.raceResults.find((r) => r.planId === plan.id) ?? null;
+          return clone({ ...plan, raceResult });
         },
         update: async ({ where, data }: { where: { id: string }; data: Row }) => {
           const plan = store.plans.find((p) => p.id === where.id)!;
@@ -53,7 +61,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { archiveIfPast, recordRaceResult } from "./plan-lifecycle";
+import { archiveIfPast, initialVdotForNewPlan, recordRaceResult } from "./plan-lifecycle";
 import { calculateVdot } from "./vdot";
 
 const TODAY = new Date("2026-11-07T15:30:00Z");
@@ -153,6 +161,26 @@ describe("plan-lifecycle", () => {
         db.raceResults.map((r) => r.vdotComputed),
       );
       expect(db.vdotHistory.every((h) => h.source === VdotSource.RACE)).toBe(true);
+    });
+  });
+
+  describe("initialVdotForNewPlan", () => {
+    it("initialVdotForNewPlan uses the VDOT computed from the archived plan's race result", async () => {
+      const plan = seedPlan({ status: PlanStatus.ARCHIVED, currentVdot: 47 });
+      await recordRaceResult(plan.id as string, 41 * 60 + 21);
+
+      expect(await initialVdotForNewPlan(plan.id as string)).toBe(calculateVdot(10, 41 * 60 + 21));
+    });
+
+    it("initialVdotForNewPlan falls back to the archived plan's currentVdot when no race result exists", async () => {
+      const plan = seedPlan({ status: PlanStatus.ARCHIVED, initialVdot: 44, currentVdot: 47.5 });
+
+      expect(await initialVdotForNewPlan(plan.id as string)).toBe(47.5);
+    });
+
+    it("initialVdotForNewPlan returns null when there is no previous plan", async () => {
+      expect(await initialVdotForNewPlan()).toBeNull();
+      expect(await initialVdotForNewPlan(undefined)).toBeNull();
     });
   });
 });

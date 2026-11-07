@@ -41,3 +41,17 @@ export async function recordRaceResult(
     });
   });
 }
+
+// Spec LIFE-04/LIFE-05: a new plan starts from the previous plan's race result if one was recorded,
+// otherwise from its last currentVdot.
+// SPEC_DEVIATION: design.md types the return as `Promise<number>`; this returns `number | null`.
+// Reason: with no previous plan there is nothing to carry over (tasks.md T21), and the caller falls
+// through to the normal VDOT-establishment flow.
+export async function initialVdotForNewPlan(previousPlanId?: string): Promise<number | null> {
+  if (!previousPlanId) return null;
+  const plan = await prisma.plan.findUniqueOrThrow({
+    where: { id: previousPlanId },
+    include: { raceResult: true },
+  });
+  return plan.raceResult?.vdotComputed ?? plan.currentVdot;
+}
