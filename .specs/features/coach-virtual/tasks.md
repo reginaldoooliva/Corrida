@@ -512,11 +512,11 @@ and persists a `WeeklyAdjustment` row.
 **Requirement**: ADJ-05, ADJ-06
 
 **Done when**:
-- [ ] First call on an ended, unreassessed week persists one `WeeklyAdjustment` row with the 3
+- [x] First call on an ended, unreassessed week persists one `WeeklyAdjustment` row with the 3
       signal values, decision and `adjustmentPct`
-- [ ] A second call on the same week is a no-op (no second row, no change to next week's sessions)
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 3 tests pass (no silent deletions)
+- [x] A second call on the same week is a no-op (no second row, no change to next week's sessions)
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 3 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick

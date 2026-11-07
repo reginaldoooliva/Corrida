@@ -1,4 +1,12 @@
-import { Decision, SessionType } from "@prisma/client";
+import {
+  Decision,
+  Prisma,
+  SessionType,
+  type Session,
+  type WeeklyAdjustment,
+} from "@prisma/client";
+
+import { prisma } from "@/lib/prisma";
 
 import type { SessionDraft } from "./plan-generator";
 import { paceForVdot } from "./vdot";
@@ -80,4 +88,65 @@ export function applyDecision(
       plannedDurationMin: Math.round(s.plannedDurationMin * REDUCE_FACTOR),
     };
   });
+}
+
+const toDraft = (s: Session): SessionDraft => ({
+  date: s.date,
+  type: s.type,
+  plannedPaceSecPerKm: s.plannedPaceSecPerKm,
+  plannedDistanceKm: s.plannedDistanceKm ?? 0,
+  plannedDurationMin: s.plannedDurationMin ?? 0,
+});
+
+// Spec ADJ-05/ADJ-06: reassess an ended week at most once. `reassessedAt` is the primary guard; the
+// unique constraint on WeeklyAdjustment.weekId backstops a concurrent duplicate (e.g. two tabs).
+// The caller passes a week that has already ended.
+export async function reassessIfDue(weekId: string): Promise<WeeklyAdjustment | null> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const week = await tx.week.findUniqueOrThrow({
+        where: { id: weekId },
+        include: {
+          plan: true,
+          sessions: { include: { workoutLog: true }, orderBy: { date: "asc" } },
+        },
+      });
+      if (week.reassessedAt) return null;
+
+      const signals = computeSignals(week);
+      const decision = decide(signals);
+      // Inserted first so a duplicate is rejected before any session changes.
+      const adjustment = await tx.weeklyAdjustment.create({
+        data: {
+          weekId,
+          paceDeviationTriggered: signals.paceDeviation,
+          rpeTriggered: signals.rpe,
+          missedTriggered: signals.missed,
+          decision,
+          adjustmentPct: decision === Decision.REDUCE ? -20 : 0,
+        },
+      });
+
+      const nextWeek = await tx.week.findFirst({
+        where: { planId: week.planId, weekNumber: week.weekNumber + 1 },
+        include: { sessions: { orderBy: { date: "asc" } } },
+      });
+      if (nextWeek && decision !== Decision.PROGRESS) {
+        const drafts = applyDecision(decision, nextWeek.sessions.map(toDraft), {
+          currentWeek: week.sessions.map(toDraft),
+          vdot: week.plan.currentVdot,
+        });
+        // Updated in place: a next-week session may already carry a (future-dated) log.
+        for (const [i, session] of nextWeek.sessions.entries()) {
+          await tx.session.update({ where: { id: session.id }, data: drafts[i] });
+        }
+      }
+
+      await tx.week.update({ where: { id: weekId }, data: { reassessedAt: new Date() } });
+      return adjustment;
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return null;
+    throw error;
+  }
 }
