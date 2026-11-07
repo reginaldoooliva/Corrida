@@ -620,10 +620,10 @@ exists for the user (defense in depth alongside T3's DB index).
 **Requirement**: LIFE-06
 
 **Done when**:
-- [ ] Creating a plan while one `active` plan exists throws a typed, user-facing error
-- [ ] Creating a plan while none is `active` succeeds
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 2 tests pass (no silent deletions)
+- [x] Creating a plan while one `active` plan exists throws a typed, user-facing error
+- [x] Creating a plan while none is `active` succeeds
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 2 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick

@@ -4,10 +4,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // In-memory stand-in for the database, one array per table. A transaction works on a staged copy
 // that replaces `db` only when the callback resolves, so a thrown error leaves `db` untouched.
 type Row = Record<string, unknown>;
-type Store = { plans: Row[]; vdotHistory: Row[]; raceResults: Row[] };
+type Store = {
+  plans: Row[];
+  vdotHistory: Row[];
+  raceResults: Row[];
+  weeks: Row[];
+  sessions: Row[];
+};
 
 const { db, modelsFor } = vi.hoisted(() => {
-  const db: Store = { plans: [], vdotHistory: [], raceResults: [] };
+  const db: Store = { plans: [], vdotHistory: [], raceResults: [], weeks: [], sessions: [] };
   const clone = <T,>(value: T): T => structuredClone(value);
 
   function modelsFor(store: Store) {
@@ -31,10 +37,26 @@ const { db, modelsFor } = vi.hoisted(() => {
           const raceResult = store.raceResults.find((r) => r.planId === plan.id) ?? null;
           return clone({ ...plan, raceResult });
         },
+        findFirst: async ({ where }: { where: { userId: string; status: string } }) => {
+          const plan = store.plans.find(
+            (p) => p.userId === where.userId && p.status === where.status,
+          );
+          return plan ? clone(plan) : null;
+        },
+        create: async ({ data }: { data: Row }) =>
+          insert(store.plans, "plan", { status: "ACTIVE", ...data }),
         update: async ({ where, data }: { where: { id: string }; data: Row }) => {
           const plan = store.plans.find((p) => p.id === where.id)!;
           Object.assign(plan, data);
           return clone(plan);
+        },
+      },
+      week: {
+        create: async ({ data }: { data: Row & { sessions?: { create: Row[] } } }) => {
+          const { sessions, ...rest } = data;
+          const week = insert(store.weeks, "week", { reassessedAt: null, ...rest });
+          for (const s of sessions?.create ?? []) insert(store.sessions, "s", { weekId: week.id, ...s });
+          return week;
         },
       },
       vdotHistory: {
@@ -61,7 +83,14 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { archiveIfPast, initialVdotForNewPlan, recordRaceResult } from "./plan-lifecycle";
+import type { Weekday } from "./plan-generator";
+import {
+  ActivePlanExistsError,
+  archiveIfPast,
+  createNewPlan,
+  initialVdotForNewPlan,
+  recordRaceResult,
+} from "./plan-lifecycle";
 import { calculateVdot } from "./vdot";
 
 const TODAY = new Date("2026-11-07T15:30:00Z");
@@ -88,6 +117,8 @@ describe("plan-lifecycle", () => {
     db.plans = [];
     db.vdotHistory = [];
     db.raceResults = [];
+    db.weeks = [];
+    db.sessions = [];
   });
 
   describe("archiveIfPast", () => {
@@ -181,6 +212,49 @@ describe("plan-lifecycle", () => {
     it("initialVdotForNewPlan returns null when there is no previous plan", async () => {
       expect(await initialVdotForNewPlan()).toBeNull();
       expect(await initialVdotForNewPlan(undefined)).toBeNull();
+    });
+  });
+
+  describe("createNewPlan", () => {
+    // A 10km race 10 weeks out, from a manual 5km in 19:57.
+    const input = {
+      userId: "user-1",
+      raceType: RaceType.TEN_K,
+      raceDate: new Date("2027-01-16T00:00:00Z"),
+      daysPerWeek: [1, 3, 6] as Weekday[],
+      vdotSource: VdotSource.MANUAL,
+      result: { distanceKm: 5, timeSec: 19 * 60 + 57 },
+      today: TODAY,
+    };
+
+    it("createNewPlan rejects a second active plan while one already exists", async () => {
+      const existing = seedPlan({ status: PlanStatus.ACTIVE });
+      const before = structuredClone(db);
+
+      const attempt = createNewPlan(input);
+
+      await expect(attempt).rejects.toBeInstanceOf(ActivePlanExistsError);
+      await expect(attempt).rejects.toThrow(/already have an active plan/);
+      expect(db).toEqual(before);
+      expect(db.plans).toEqual([existing]);
+    });
+
+    it("createNewPlan creates the plan when no plan is active", async () => {
+      seedPlan({ status: PlanStatus.ARCHIVED });
+
+      const { plan } = await createNewPlan(input);
+
+      expect(db.plans).toHaveLength(2);
+      expect(db.plans[1]).toMatchObject({
+        id: plan.id,
+        userId: "user-1",
+        raceType: RaceType.TEN_K,
+        status: PlanStatus.ACTIVE,
+      });
+      expect(db.weeks.filter((w) => w.planId === plan.id)).toHaveLength(10);
+      expect(db.vdotHistory).toEqual([
+        expect.objectContaining({ planId: plan.id, source: VdotSource.MANUAL }),
+      ]);
     });
   });
 });

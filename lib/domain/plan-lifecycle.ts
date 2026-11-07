@@ -2,6 +2,7 @@ import { PlanStatus, RaceType, VdotSource, type VdotHistory } from "@prisma/clie
 
 import { prisma } from "@/lib/prisma";
 
+import { createPlan, type CreatePlanInput } from "./plan-generator";
 import { calculateVdot } from "./vdot";
 
 const RACE_DISTANCE_KM: Record<RaceType, number> = {
@@ -54,4 +55,21 @@ export async function initialVdotForNewPlan(previousPlanId?: string): Promise<nu
     include: { raceResult: true },
   });
   return plan.raceResult?.vdotComputed ?? plan.currentVdot;
+}
+
+export class ActivePlanExistsError extends Error {
+  constructor() {
+    super("You already have an active plan. It must end before a new one can start.");
+    this.name = "ActivePlanExistsError";
+  }
+}
+
+// Spec LIFE-06: at most one active plan per user. The partial unique index on Plan(userId)
+// WHERE status = 'ACTIVE' is the database-level backstop for a concurrent attempt.
+export async function createNewPlan(input: CreatePlanInput): ReturnType<typeof createPlan> {
+  const active = await prisma.plan.findFirst({
+    where: { userId: input.userId, status: PlanStatus.ACTIVE },
+  });
+  if (active) throw new ActivePlanExistsError();
+  return createPlan(input);
 }
