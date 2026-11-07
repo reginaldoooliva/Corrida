@@ -1308,8 +1308,30 @@ requests on the matched paths to `/login`) is unchanged; see the `SPEC_DEVIATION
 file. `npm run build`/`typecheck`/`lint` also needed `NODE_OPTIONS="--max-old-space-size=2048"`
 in this session after a transient OOM under heavy background memory pressure on this machine -
 not a code issue, no script changes made for it.
+
+Phase 2 spec-precision gaps (spec.md does not pin an exact value, so the Batch 2 worker chose one
+- flag if the Verifier or a later spec update disagrees): Long-run pace is bounded (slower than
+marathon pace, faster than Easy) at 74% intensity, not pinned like Easy/Tempo/Interval (70/88/
+97.5%). Session volumes: Easy 40min, Long 75min, Tempo 25min, Interval 20min, x0.6 in taper (one
+Tempo, no Long/Interval in taper); distance = duration / VDOT pace. Build/peak Tempo/Interval
+weighting is "a larger share than base", majority only at 3 days/week (a literal majority at 6
+days/week would mean 4 hard sessions). `isPlausibleResult` accepts VDOT in `(0, 90]`. Plan weeks =
+whole UTC calendar weeks between today and race date, rounded down.
+
+Build-gate OOM (Phase 2 end, recurring): `npm run build`'s internal TypeScript worker crashes with
+a V8 "Committing semi space failed" heap OOM on this machine, independent of `NODE_OPTIONS`
+(`--max-old-space-size` up to 4096 and `--max-semi-space-size=64` both tried, same crash) - the
+orchestrator reproduced it directly via `npx next build`, and the Batch 2 worker reproduced it on
+the Phase 1 baseline with Phase 2's files moved out, confirming it is a machine memory-pressure
+issue (other apps - VS Code, Chrome, multiple Claude processes - plus Windows memory compression
+leave too little headroom for the type-check worker's V8 heap), not a code defect. `typecheck`
+(`tsc --noEmit`) and `lint` both pass standalone. User decision 2026-11-07: proceed to Batch 3
+rather than pause to free memory now; retry the full Build gate later when more headroom is
+available (before `check_proofs.py` and again before T40's deploy).
 **Dispatched:** Batch 1 (Phase 1: T1-T7) dispatched 2026-11-07, pre-HEAD 4ebd525 - returned, all
-complete. Batch 2 (Phase 2: T8-T13) dispatched 2026-11-07, pre-HEAD 6279836
+complete. Batch 2 (Phase 2: T8-T13) dispatched 2026-11-07, pre-HEAD 6279836 - returned, all
+complete (Build gate deferred per above). Batch 3 (Phase 3: T14-T18) dispatched 2026-11-07,
+pre-HEAD 2df1b70
 **Walked:** none
 
 ---
