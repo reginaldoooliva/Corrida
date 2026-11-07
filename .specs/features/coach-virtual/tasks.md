@@ -763,11 +763,11 @@ rendering behavior in the same task.
 **Requirement**: DASH-01, DASH-02, DASH-03
 
 **Done when**:
-- [ ] Sessions render in date order with all required fields; e2e asserts it
-- [ ] A past unlogged session shows `missed`; e2e asserts it
-- [ ] A logged session shows `done` with actual pace next to planned pace; e2e asserts it
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
-- [ ] Test count: 3 tests pass (no silent deletions)
+- [x] Sessions render in date order with all required fields; e2e asserts it
+- [x] A past unlogged session shows `missed`; e2e asserts it
+- [x] A logged session shows `done` with actual pace next to planned pace; e2e asserts it
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] Test count: 3 tests pass (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full

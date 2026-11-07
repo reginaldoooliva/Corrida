@@ -1,6 +1,9 @@
+import { RaceType, VdotSource } from "@prisma/client";
 import { loadEnvConfig } from "@next/env";
 import { expect, type Page } from "@playwright/test";
 
+import { createNewPlan } from "../lib/domain/plan-lifecycle";
+import type { Weekday } from "../lib/domain/plan-generator";
 import { prisma } from "../lib/prisma";
 
 // The seeded account (prisma/seed.ts) comes from the same .env the app reads, same pattern as
@@ -35,4 +38,43 @@ export async function resetPlans(userId: string): Promise<void> {
   await prisma.raceResult.deleteMany({ where: { plan: { userId } } });
   await prisma.vdotHistory.deleteMany({ where: { plan: { userId } } });
   await prisma.plan.deleteMany({ where: { userId } });
+}
+
+// Dashboard/logging e2e tests need a session that already landed in the past relative to the
+// real "today", which createNewPlan can't produce on its own (every session it generates sits on
+// or after the "today" it's given). Backdating the plan's own "today" by `daysAgo` makes week 1
+// start that many days ago, so some of its sessions fall before the real wall-clock today -
+// mirrors the spec's own Independent Test ("avançar artificialmente a data").
+export async function seedActivePlan(
+  userId: string,
+  opts: { daysAgo?: number; days?: Weekday[] } = {},
+): Promise<{ planId: string }> {
+  const today = new Date();
+  const start = new Date(today.getTime() - (opts.daysAgo ?? 3) * 86400000);
+  const raceDate = new Date(today.getTime() + 70 * 86400000);
+  const { plan } = await createNewPlan({
+    userId,
+    raceType: RaceType.TEN_K,
+    raceDate,
+    daysPerWeek: opts.days ?? [0, 1, 2, 3, 4, 5],
+    vdotSource: VdotSource.MANUAL,
+    result: { distanceKm: 5, timeSec: 19 * 60 + 57 },
+    today: start,
+  });
+  return { planId: plan.id };
+}
+
+export async function logWorkout(
+  sessionId: string,
+  overrides: Partial<{ actualPaceSecPerKm: number; actualDistanceKm: number; actualDurationMin: number; rpe: number }> = {},
+): Promise<void> {
+  await prisma.workoutLog.create({
+    data: {
+      sessionId,
+      actualPaceSecPerKm: overrides.actualPaceSecPerKm ?? 300,
+      actualDistanceKm: overrides.actualDistanceKm ?? 5,
+      actualDurationMin: overrides.actualDurationMin ?? 25,
+      rpe: overrides.rpe ?? 5,
+    },
+  });
 }
