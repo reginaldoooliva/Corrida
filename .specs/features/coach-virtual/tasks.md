@@ -358,12 +358,12 @@ via bcrypt.
 **Requirement**: PLAN-01, PLAN-02, PLAN-04, PLAN-08
 
 **Done when**:
-- [ ] `computePlanWeeks` returns `raceDate - today` in whole weeks for all 4 race types
-- [ ] `belowMinimum` is `true` exactly when weeks < the race type's minimum (5k:8, 10k:10, 21k:12, 42k:16)
-- [ ] `validateDaysPerWeek` accepts 3-6 and rejects <3 and >6
-- [ ] A race type outside the 4 supported ones is rejected
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 8 tests pass (no silent deletions)
+- [x] `computePlanWeeks` returns `raceDate - today` in whole weeks for all 4 race types
+- [x] `belowMinimum` is `true` exactly when weeks < the race type's minimum (5k:8, 10k:10, 21k:12, 42k:16)
+- [x] `validateDaysPerWeek` accepts 3-6 and rejects <3 and >6
+- [x] A race type outside the 4 supported ones is rejected
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 8 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick
