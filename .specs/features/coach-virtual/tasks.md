@@ -1368,11 +1368,33 @@ rejects a short race date, so creation has no race-date error to reuse; a race d
 week from the current one is rejected with `RACE_DATE_ERROR`; the day-count error is the exact
 `createPlan` message (`DAYS_PER_WEEK_ERROR`, now exported from `plan-generator.ts`). The function
 does not check `status = ACTIVE` itself - T39 must only call it for the active plan (LIFE-01).
+
+Phase 4/5 deviations and notes for later tasks (Batch 4): `recordRaceResult` uses official
+distances 21.0975/42.195 km for HALF/MARATHON (spec says "21km/42km"), dates the `RaceResult` and
+its `VdotHistory` at `plan.raceDate`, and does not run `isPlausibleResult` - T36 should validate the
+finish time before calling it. `initialVdotForNewPlan` returns `number | null` (SPEC_DEVIATION).
+`createNewPlan(input: CreatePlanInput)` throws `ActivePlanExistsError`; it does not catch a `P2002`
+from the DB index (concurrent race). **Gap for T37:** `createPlan` only accepts a
+`{ distanceKm, timeSec }` result + `TEST|MANUAL` source, so a carried-over VDOT (T21) cannot be fed
+to it yet - T37 needs a VDOT-direct input path. `recomputeFuturePaces(planId, newVdot, today)`
+gained `today` (SPEC_DEVIATION) and updates pace only (not distance); T30 still needs a domain
+function that adds the `RECALC` `VdotHistory` row and updates `currentVdot` around it. Commit message
+for T24 lowercased to `feat(domain): vdot retest due-check ...` (check_commit rejects uppercase, as
+for T8). T25: next-auth v4 has no server-side `signIn`, so `/login` is a client form calling
+`next-auth/react`'s `signIn` and no `app/login/actions.ts` exists (SPEC_DEVIATION in the page; the
+commit message still says "sign-in action" as tasks.md prescribes). UI copy is Portuguese; generic
+message "Credenciais inválidas.". `/dashboard` does not exist until T28, so a successful login
+currently lands on a 404 at `/dashboard` (the e2e proves the session by the proxy not bouncing it).
+`e2e/auth.spec.ts` loads `.env` via `@next/env`. `next dev` (16.4) auto-generates an untracked
+`AGENTS.md` in the repo root - left uncommitted. Phase 4+5 Build gate: first `npm run build` OOMed
+because an orphaned `next dev` node process survived stopping the background task; after killing it,
+`NODE_OPTIONS="--max-old-space-size=4096" npm run build` passed, `typecheck` and `lint` green.
 **Dispatched:** Batch 1 (Phase 1: T1-T7) dispatched 2026-11-07, pre-HEAD 4ebd525 - returned, all
 complete. Batch 2 (Phase 2: T8-T13) dispatched 2026-11-07, pre-HEAD 6279836 - returned, all
 complete (Build gate deferred per above). Batch 3 (Phase 3: T14-T18) dispatched 2026-11-07,
 pre-HEAD 2df1b70 - returned, all complete, Build gate green. Batch 4 (Phase 4+5: T19-T25)
-dispatched 2026-11-07, pre-HEAD 13baa4e
+dispatched 2026-11-07, pre-HEAD 13baa4e - returned, all complete, Build gate green. Batch 5
+(Phase 6+7+8: T26-T32) dispatched 2026-11-07, pre-HEAD a59955a
 **Walked:** none
 
 ---
