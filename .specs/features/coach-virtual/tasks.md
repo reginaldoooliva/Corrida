@@ -714,11 +714,11 @@ the same task.
 **Requirement**: VDOT-01, VDOT-02
 
 **Done when**:
-- [ ] A user with no prior VDOT is offered both the guided test and manual entry; e2e asserts it
-- [ ] The guided-test path shows instructions, then a result-entry form; e2e asserts it
-- [ ] An implausible time is rejected with a field-level error
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
-- [ ] Test count: 2 tests pass (no silent deletions)
+- [x] A user with no prior VDOT is offered both the guided test and manual entry; e2e asserts it
+- [x] The guided-test path shows instructions, then a result-entry form; e2e asserts it
+- [x] An implausible time is rejected with a field-level error
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] Test count: 2 tests pass (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full
