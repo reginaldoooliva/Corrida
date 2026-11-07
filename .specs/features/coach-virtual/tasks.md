@@ -642,12 +642,12 @@ exists for the user (defense in depth alongside T3's DB index).
 **Requirement**: EDIT-01, EDIT-02, EDIT-03
 
 **Done when**:
-- [ ] Changing the race date or days mid-plan leaves past weeks' `Session`/`WorkoutLog` rows byte-for-byte
+- [x] Changing the race date or days mid-plan leaves past weeks' `Session`/`WorkoutLog` rows byte-for-byte
       unchanged
-- [ ] Future weeks are regenerated using the plan's `currentVdot`, not `initialVdot`
-- [ ] An invalid new race date/day-count is rejected with the same error as plan creation
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 4 tests pass (no silent deletions)
+- [x] Future weeks are regenerated using the plan's `currentVdot`, not `initialVdot`
+- [x] An invalid new race date/day-count is rejected with the same error as plan creation
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 4 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick
@@ -1351,6 +1351,23 @@ different session count, that pairing breaks. Does not happen in the normal flow
 generated with the same `daysPerWeek` until an edit changes it) - check whether T23's
 recalculation can land adjacent to an unreassessed week with a different day count, and if so,
 either guard against it or document it as an accepted limitation.
+**Resolved in T23 (guarded):** it could happen - an edit in week k rebuilds week k with the new
+days while week k-1 (ended) may still be unreassessed. `recalculateFromCurrentWeek` now calls
+`reassessIfDue(week k-1)` before rebuilding, so k-1 is never paired later with a rebuilt week;
+from week k on every week shares the new day pattern. Proven by the test "settles the ended
+week's pending reassessment..." (fails with the guard removed). Accepted trade-offs: (1) that
+reassessment's effect on week k is replaced by the regeneration (the `WeeklyAdjustment` row stays);
+(2) a logged session in a rebuilt week is kept (WorkoutLogs are never deleted) and stands in for
+the regenerated session on its date - if it sits on a weekday the edit removed, that week has one
+extra session; `reassessIfDue` then still updates every next-week session (drafts >= sessions, no
+crash) but a `maintain` may clone that extra day's date; (3) unlogged sessions earlier in the
+current week are regenerated on the new days and may show as missed. Other T23 choices:
+signature gained `today` (SPEC_DEVIATION marker); phases re-split over the whole new plan length
+(`splitPhases(N)` positions from the current week on); EDIT-02 spec-precision gap - PLAN-02 never
+rejects a short race date, so creation has no race-date error to reuse; a race date leaving no
+week from the current one is rejected with `RACE_DATE_ERROR`; the day-count error is the exact
+`createPlan` message (`DAYS_PER_WEEK_ERROR`, now exported from `plan-generator.ts`). The function
+does not check `status = ACTIVE` itself - T39 must only call it for the active plan (LIFE-01).
 **Dispatched:** Batch 1 (Phase 1: T1-T7) dispatched 2026-11-07, pre-HEAD 4ebd525 - returned, all
 complete. Batch 2 (Phase 2: T8-T13) dispatched 2026-11-07, pre-HEAD 6279836 - returned, all
 complete (Build gate deferred per above). Batch 3 (Phase 3: T14-T18) dispatched 2026-11-07,

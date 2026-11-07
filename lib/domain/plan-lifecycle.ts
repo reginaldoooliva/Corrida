@@ -2,8 +2,18 @@ import { PlanStatus, RaceType, VdotSource, type VdotHistory } from "@prisma/clie
 
 import { prisma } from "@/lib/prisma";
 
-import { createPlan, type CreatePlanInput } from "./plan-generator";
+import {
+  DAYS_PER_WEEK_ERROR,
+  computePlanWeeks,
+  createPlan,
+  generateSessions,
+  splitPhases,
+  validateDaysPerWeek,
+  type CreatePlanInput,
+  type Weekday,
+} from "./plan-generator";
 import { calculateVdot } from "./vdot";
+import { reassessIfDue } from "./weekly-adjustment";
 
 const RACE_DISTANCE_KM: Record<RaceType, number> = {
   [RaceType.FIVE_K]: 5,
@@ -72,4 +82,83 @@ export async function createNewPlan(input: CreatePlanInput): ReturnType<typeof c
   });
   if (active) throw new ActivePlanExistsError();
   return createPlan(input);
+}
+
+export const RACE_DATE_ERROR = "The race date must fall after the current training week.";
+
+// Spec EDIT-01..03: rebuild the plan from the week containing `today` onwards with the plan's
+// currentVdot. Weeks before it are not touched. WorkoutLogs are never deleted: a logged session in
+// a rebuilt week is kept and stands in for the regenerated session on its date.
+// SPEC_DEVIATION: design.md's signature has no `today` argument.
+// Reason: "the current week" depends on the date; passing it keeps this testable, like archiveIfPast.
+export async function recalculateFromCurrentWeek(
+  planId: string,
+  changes: { raceDate?: Date; days?: Weekday[] },
+  today: Date,
+): Promise<void> {
+  const plan = await prisma.plan.findUniqueOrThrow({ where: { id: planId }, include: { weeks: true } });
+  const raceDate = changes.raceDate ?? plan.raceDate;
+  const days = changes.days ?? (plan.daysPerWeek as Weekday[]);
+
+  if (!validateDaysPerWeek(days)) throw new Error(DAYS_PER_WEEK_ERROR);
+  // Weeks are 7-day blocks counted from the plan start, exactly as createPlan lays them out.
+  const startDay = utcDayNumber(plan.startDate);
+  const currentWeek = Math.max(1, Math.floor((utcDayNumber(today) - startDay) / 7) + 1);
+  const { weeks: totalWeeks } = computePlanWeeks(plan.raceType, raceDate, plan.startDate);
+  if (totalWeeks < currentWeek) throw new Error(RACE_DATE_ERROR);
+
+  // reassessIfDue pairs an ended week's sessions with the next week's by position. Settle the
+  // ended week before the current one now, so it is never later paired with a rebuilt week whose
+  // day count differs. Its WeeklyAdjustment is kept; its effect on the current week is replaced by
+  // the regeneration below.
+  const previous = plan.weeks.find((w) => w.weekNumber === currentWeek - 1);
+  if (previous && !previous.reassessedAt) await reassessIfDue(previous.id);
+
+  await prisma.$transaction(async (tx) => {
+    const weeks = await tx.week.findMany({
+      where: { planId },
+      include: { sessions: { include: { workoutLog: true } } },
+    });
+    const rebuilt = weeks.filter((w) => w.weekNumber >= currentWeek);
+    const keptWeeks = rebuilt.filter((w) => w.sessions.some((s) => s.workoutLog));
+
+    await tx.session.deleteMany({
+      where: {
+        id: { in: rebuilt.flatMap((w) => w.sessions.filter((s) => !s.workoutLog).map((s) => s.id)) },
+      },
+    });
+    await tx.week.deleteMany({
+      where: { id: { in: rebuilt.filter((w) => !keptWeeks.includes(w)).map((w) => w.id) } },
+    });
+
+    for (const assignment of splitPhases(totalWeeks).slice(currentWeek - 1)) {
+      const startDate = new Date((startDay + (assignment.weekNumber - 1) * 7) * DAY_MS);
+      const drafts = generateSessions({ ...assignment, startDate }, days, plan.currentVdot);
+      const kept = keptWeeks.find((w) => w.weekNumber === assignment.weekNumber);
+      if (!kept) {
+        await tx.week.create({
+          data: {
+            planId,
+            weekNumber: assignment.weekNumber,
+            phase: assignment.phase,
+            startDate,
+            endDate: new Date(startDate.getTime() + 6 * DAY_MS),
+            sessions: { create: drafts },
+          },
+        });
+        continue;
+      }
+      const loggedDays = new Set(
+        kept.sessions.filter((s) => s.workoutLog).map((s) => utcDayNumber(s.date)),
+      );
+      await tx.week.update({ where: { id: kept.id }, data: { phase: assignment.phase } });
+      await tx.session.createMany({
+        data: drafts
+          .filter((d) => !loggedDays.has(utcDayNumber(d.date)))
+          .map((d) => ({ ...d, weekId: kept.id })),
+      });
+    }
+
+    await tx.plan.update({ where: { id: planId }, data: { raceDate, daysPerWeek: days } });
+  });
 }
