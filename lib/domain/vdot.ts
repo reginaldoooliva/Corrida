@@ -1,3 +1,5 @@
+import { SessionType } from "@prisma/client";
+
 // Jack Daniels / Jimmy Gilbert VDOT model (Daniels' Running Formula).
 
 // Oxygen cost (ml/kg/min) of running at `velocity` metres per minute.
@@ -29,4 +31,26 @@ export function isPlausibleResult(distanceKm: number, timeSec: number): boolean 
   if (distanceKm <= 0 || timeSec <= 0) return false;
   const vdot = calculateVdot(distanceKm, timeSec);
   return vdot > 0 && vdot <= MAX_PLAUSIBLE_VDOT;
+}
+
+// Training intensity as a fraction of VDOT (Daniels' zones). Daniels runs long runs at
+// E pace; Long uses the top of the E range (59-74%) so it stays distinct from Easy.
+const INTENSITY: Record<SessionType, number> = {
+  [SessionType.EASY]: 0.7,
+  [SessionType.LONG]: 0.74,
+  [SessionType.TEMPO]: 0.88,
+  [SessionType.INTERVAL]: 0.975,
+};
+
+export function paceForVdot(
+  vdot: number,
+  sessionType: SessionType,
+): { secPerKm: number } {
+  // Invert oxygenCost(): solve 0.000104 v^2 + 0.182258 v - (4.6 + vo2) = 0 for v (m/min).
+  const vo2 = vdot * INTENSITY[sessionType];
+  const a = 0.000104;
+  const b = 0.182258;
+  const c = -4.6 - vo2;
+  const velocity = (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a);
+  return { secPerKm: Math.round(60000 / velocity) };
 }

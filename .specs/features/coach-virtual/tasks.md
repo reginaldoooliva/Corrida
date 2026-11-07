@@ -337,10 +337,10 @@ via bcrypt.
 **Requirement**: PLAN-07
 
 **Done when**:
-- [ ] Returns a distinct, correctly-ordered pace (Interval fastest → Easy slowest) for a fixed VDOT
-- [ ] One test per `SessionType`
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 4 tests pass (no silent deletions)
+- [x] Returns a distinct, correctly-ordered pace (Interval fastest → Easy slowest) for a fixed VDOT
+- [x] One test per `SessionType`
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 4 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick
