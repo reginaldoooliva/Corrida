@@ -534,11 +534,11 @@ and persists a `WeeklyAdjustment` row.
 **Requirement**: LOG-04 (status recompute), Edge Case (future-dated log)
 
 **Done when**:
-- [ ] A logged future-dated session resolves `done`
-- [ ] A past, unlogged session resolves `missed`
-- [ ] A future, unlogged session resolves `pending`
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 3 tests pass (no silent deletions)
+- [x] A logged future-dated session resolves `done`
+- [x] A past, unlogged session resolves `missed`
+- [x] A future, unlogged session resolves `pending`
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 3 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick
