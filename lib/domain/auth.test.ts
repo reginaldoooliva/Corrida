@@ -5,12 +5,13 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: {
       findUnique: vi.fn(),
+      findFirstOrThrow: vi.fn(),
     },
   },
 }));
 
 import { prisma } from "@/lib/prisma";
-import { verifyCredentials } from "./auth";
+import { getSeededUserId, verifyCredentials } from "./auth";
 
 const USERNAME = "runner";
 const PLAIN_PASSWORD = "correct-horse-battery-staple";
@@ -59,5 +60,13 @@ describe("auth", () => {
   it("stored passwordHash is bcrypt, never the plaintext password", () => {
     expect(passwordHash).not.toBe(PLAIN_PASSWORD);
     expect(passwordHash).toMatch(/^\$2[aby]?\$\d{2}\$/);
+  });
+
+  describe("getSeededUserId", () => {
+    it("returns the id of the single seeded account", async () => {
+      vi.mocked(prisma.user.findFirstOrThrow).mockResolvedValue(seededUser(passwordHash));
+
+      expect(await getSeededUserId()).toBe("user-1");
+    });
   });
 });

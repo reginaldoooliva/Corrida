@@ -18,3 +18,11 @@ export async function verifyCredentials(
 
   return { id: user.id };
 }
+
+// This app provisions exactly one account (AD-002); Server Actions that need the current user's id
+// for a write (e.g. plan creation) look it up here instead of threading a session-derived id
+// through NextAuth, which would need extra JWT/session callbacks for a single-user app.
+export async function getSeededUserId(): Promise<string> {
+  const user = await prisma.user.findFirstOrThrow();
+  return user.id;
+}

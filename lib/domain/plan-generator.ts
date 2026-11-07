@@ -9,8 +9,9 @@ export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-// Recommended minimum plan length per race type (spec PLAN-02).
-const MINIMUM_WEEKS: Record<RaceType, number> = {
+// Recommended minimum plan length per race type (spec PLAN-02). Exported so the UI can name the
+// deficit when a plan comes in below this (T27).
+export const MINIMUM_WEEKS: Record<RaceType, number> = {
   [RaceType.FIVE_K]: 8,
   [RaceType.TEN_K]: 10,
   [RaceType.HALF]: 12,
@@ -165,6 +166,11 @@ export async function createPlan(
   const vdot = calculateVdot(result.distanceKm, result.timeSec);
   const startDay = utcDayNumber(today) * DAY_MS;
 
+  // SPEC_DEVIATION: raised from Prisma's 5000ms default interactive-transaction timeout.
+  // Reason: against the live pooled Supabase connection, creating a full plan's Week/Session rows
+  // one network round trip at a time can exceed 5s for longer plans; T27's e2e tests (the first to
+  // exercise this against the real DB, not vitest's mocked prisma) hit "Transaction already
+  // closed" at exactly that threshold.
   const plan = await prisma.$transaction(async (tx) => {
     const plan = await tx.plan.create({
       data: {
@@ -197,7 +203,7 @@ export async function createPlan(
       });
     }
     return plan;
-  });
+  }, { timeout: 20000 });
 
   return { plan, belowMinimum };
 }

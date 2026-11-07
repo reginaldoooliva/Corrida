@@ -738,13 +738,13 @@ onboarding flow (VDOT + plan form) exists.
 **Requirement**: PLAN-01, PLAN-02, PLAN-03, PLAN-04
 
 **Done when**:
-- [ ] A 10km plan ~10 weeks out, created from a manually entered 5km time, shows ~10 weeks with the
+- [x] A 10km plan ~10 weeks out, created from a manually entered 5km time, shows ~10 weeks with the
       expected phase proportions; e2e asserts it
-- [ ] A plan shorter than the recommended minimum still generates, with a visible warning; e2e
+- [x] A plan shorter than the recommended minimum still generates, with a visible warning; e2e
       asserts it
-- [ ] Selecting <3 or >6 days is rejected with the 3-6 range explained; e2e asserts it
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
-- [ ] Test count: 3 tests pass (no silent deletions)
+- [x] Selecting <3 or >6 days is rejected with the 3-6 range explained; e2e asserts it
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] Test count: 3 tests pass (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full
@@ -1396,6 +1396,41 @@ pre-HEAD 2df1b70 - returned, all complete, Build gate green. Batch 4 (Phase 4+5:
 dispatched 2026-11-07, pre-HEAD 13baa4e - returned, all complete, Build gate green. Batch 5
 (Phase 6+7+8: T26-T32) dispatched 2026-11-07, pre-HEAD a59955a
 **Walked:** none
+
+Batch 5 (T26-T27) deviations found while implementing against the live app rather than mocked
+unit tests:
+
+- Added `zod` as a direct dependency (`^3.25.76`) - it was only present as another package's
+  transitive dev dependency, not safe to import from app code.
+- Added `lib/domain/auth.ts`'s `getSeededUserId()`: this app provisions exactly one account
+  (AD-002), so Server Actions that need the current user's id (plan creation) look it up directly
+  instead of adding NextAuth JWT/session callbacks just to carry an id through the session - no
+  route or page outside T27's own files depends on this.
+- Exported `MINIMUM_WEEKS` from `plan-generator.ts` (was a private const) so T27's plan-created
+  summary page can name the PLAN-02 deficit; zero behavior change.
+- `createPlan`'s `prisma.$transaction` now passes `{ timeout: 20000 }` (was Prisma's 5000ms
+  default). Creating a full plan's Week/Session rows one round trip at a time against the live
+  pooled Supabase connection took longer than 5s for a 10-week plan; this only showed up once T27's
+  e2e tests exercised `createPlan` against the real DB instead of vitest's mocked prisma. Flag for
+  later batches: `recalculateFromCurrentWeek` (T23) has the same per-row-await transaction shape
+  and may need the same treatment once its own e2e path (T39) runs against the live DB.
+- **Real functional bug found and fixed, not just a test issue:** `next.config.ts`'s
+  `cacheComponents: true`/`partialPrefetching: true` (from T1's scaffold) caused a genuine
+  navigation bug: after a Server Action `redirect()` (e.g. `/plan/new/vdot` -> `/plan/new`), the
+  previous route's content stayed mounted in the DOM alongside the new route's, so two `<main>`
+  elements existed at once and the stale one could intercept clicks on the new page - reproduced
+  directly by dumping `page.locator("main")` and seeing 2 matches. Disabled both flags in
+  `next.config.ts`: every route in this app reads request-time data (searchParams, session,
+  Prisma), so static/partial prerendering had no upside here, and removing them removes the bug.
+  This would have affected a real user, not just the test harness - flagging for the Verifier as
+  the highest-priority finding to double check.
+- Playwright gate note: running the gate against `npm run dev` (Turbopack) produced a misleading
+  false lead (looked like the same dual-DOM bug) and separately hit Prisma's 5000ms transaction
+  timeout under dev-mode overhead; switched to `npm run build && npm run start` for all e2e gate
+  runs in this batch, matching what `playwright.config.ts` itself asks for
+  (`webServer.command: "npm run start"`). `--workers=1` is needed on this machine - the default
+  parallel workers reproducibly OOM the Node process (V8 "Zone Allocation failed") on top of the
+  already-documented build-time OOM.
 
 ---
 
