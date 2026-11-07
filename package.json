@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
+    "bcrypt": "^6.0.0",
     "next": "16.4.5",
     "prisma": "6.19.3",
     "react": "19.3.0",
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
+    "@types/bcrypt": "^6.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -35,6 +37,7 @@
     "esbuild@0.21.5": true,
     "@prisma/client@6.19.3": true,
     "prisma@6.19.3": true,
-    "@prisma/engines@6.19.3": true
+    "@prisma/engines@6.19.3": true,
+    "bcrypt@6.0.0": true
   }
 }
