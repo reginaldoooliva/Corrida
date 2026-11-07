@@ -316,11 +316,11 @@ via bcrypt.
 **Requirement**: VDOT-03 (pure calc), Edge Case (implausible time)
 
 **Done when**:
-- [ ] `calculateVdot` matches known Jack Daniels VDOT table values within rounding tolerance for at
+- [x] `calculateVdot` matches known Jack Daniels VDOT table values within rounding tolerance for at
       least 3 reference distance/time pairs
-- [ ] `isPlausibleResult` rejects a sub-2-minute 5km and accepts a realistic 5km time
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 5 tests pass (no silent deletions)
+- [x] `isPlausibleResult` rejects a sub-2-minute 5km and accepts a realistic 5km time
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 5 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick
