@@ -1,3 +1,5 @@
+import { Decision } from "@prisma/client";
+
 export interface WeekWithLogs {
   sessions: Array<{
     plannedPaceSecPerKm: number;
@@ -30,4 +32,12 @@ export function computeSignals(week: WeekWithLogs): Signals {
     rpe: logged.length > 0 && rpeSum >= 8 * logged.length,
     missed: missedCount * 4 >= week.sessions.length,
   };
+}
+
+// Spec ADJ-02..04: 0 signals -> progress, exactly 1 -> maintain, 2 or 3 -> reduce.
+export function decide(signals: Signals): Decision {
+  const triggered = [signals.paceDeviation, signals.rpe, signals.missed].filter(Boolean).length;
+  if (triggered === 0) return Decision.PROGRESS;
+  if (triggered === 1) return Decision.MAINTAIN;
+  return Decision.REDUCE;
 }

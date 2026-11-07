@@ -467,9 +467,9 @@ Prisma transaction.
 **Requirement**: ADJ-02, ADJ-03, ADJ-04 (decision only)
 
 **Done when**:
-- [ ] All 8 combinations of the 3 boolean signals map to the correct decision
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 8 tests pass (no silent deletions)
+- [x] All 8 combinations of the 3 boolean signals map to the correct decision
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 8 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick

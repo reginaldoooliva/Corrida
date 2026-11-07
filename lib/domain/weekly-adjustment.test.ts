@@ -1,6 +1,7 @@
+import { Decision } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
-import { computeSignals } from "./weekly-adjustment";
+import { computeSignals, decide } from "./weekly-adjustment";
 
 // A session as computeSignals sees it: its planned pace and, if logged, the actual pace and RPE.
 const logged = (planned: number, actual: number, rpe: number) => ({
@@ -50,6 +51,22 @@ describe("weekly-adjustment", () => {
     it("a week with zero logs resolves missed=true and pace/RPE as not-triggered", () => {
       const week = { sessions: [unlogged(300), unlogged(280), unlogged(330)] };
       expect(computeSignals(week)).toEqual({ paceDeviation: false, rpe: false, missed: true });
+    });
+  });
+
+  describe("decide", () => {
+    // Spec ADJ-02..04: 0 signals -> progress, exactly 1 -> maintain, 2 or 3 -> reduce.
+    it.each([
+      [false, false, false, Decision.PROGRESS],
+      [true, false, false, Decision.MAINTAIN],
+      [false, true, false, Decision.MAINTAIN],
+      [false, false, true, Decision.MAINTAIN],
+      [true, true, false, Decision.REDUCE],
+      [true, false, true, Decision.REDUCE],
+      [false, true, true, Decision.REDUCE],
+      [true, true, true, Decision.REDUCE],
+    ])("decide maps pace=%s rpe=%s missed=%s to %s", (paceDeviation, rpe, missed, expected) => {
+      expect(decide({ paceDeviation, rpe, missed })).toBe(expected);
     });
   });
 });
