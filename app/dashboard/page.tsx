@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { getSeededUserId } from "@/lib/domain/auth";
 import { deriveSessionStatus, type SessionStatus } from "@/lib/domain/session-status";
+import { reassessIfDue } from "@/lib/domain/weekly-adjustment";
 import { prisma } from "@/lib/prisma";
 
 // This page reads the active plan and today's date on every request (DASH-01..04); without this,
@@ -53,11 +54,25 @@ export default async function DashboardPage() {
   }
 
   const today = new Date();
-  // Spec DASH-01: the current week is the one today falls in; the latest week that has already
-  // started stands in once today is past every week's range (the T29 batch adds reassessment and
-  // the taper-week edge case on top of this).
-  const started = plan.weeks.filter((w) => w.startDate <= today);
-  const currentWeek = started[started.length - 1] ?? plan.weeks[0];
+
+  // Spec DASH-04: settle every ended, not-yet-reassessed week (oldest first, so paces cascade
+  // correctly even if more than one week went by unvisited) before rendering the week that follows.
+  for (const week of plan.weeks) {
+    if (!week.reassessedAt && week.endDate < today) {
+      await reassessIfDue(week.id);
+    }
+  }
+  const weeks = await prisma.week.findMany({
+    where: { planId: plan.id },
+    orderBy: { weekNumber: "asc" },
+  });
+
+  // Spec DASH-01 + Edge Case (taper-week rounding): the current week is the one today falls in;
+  // the latest week that has already started stands in once today is past every week's range -
+  // which is also the plan's last (taper) week once the race date hasn't arrived yet, so its
+  // sessions render again instead of an empty week.
+  const started = weeks.filter((w) => w.startDate <= today);
+  const currentWeek = started[started.length - 1] ?? weeks[0];
 
   const sessions = currentWeek
     ? await prisma.session.findMany({

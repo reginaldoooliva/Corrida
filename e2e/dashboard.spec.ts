@@ -1,6 +1,8 @@
+import { Decision, RaceType, VdotSource } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
 import { getSeededUserId, login, logWorkout, resetPlans, seedActivePlan } from "./helpers";
+import { createNewPlan } from "../lib/domain/plan-lifecycle";
 import { prisma } from "../lib/prisma";
 
 test.beforeEach(async ({ page }) => {
@@ -57,4 +59,57 @@ test("a logged session shows as done with the actual pace next to the planned pa
   await expect(row).toContainText("Feito");
   await expect(row).toContainText("4:40/km"); // actual pace: 280s = 4:40/km
   await expect(row).not.toContainText("Perdida");
+});
+
+test("opening the dashboard after a week ends reassesses before showing next week", async ({ page }) => {
+  test.setTimeout(60000);
+  // Week 1 spans [today-10, today-4], already ended; week 2 is the current one.
+  const userId = await getSeededUserId();
+  const { planId } = await seedActivePlan(userId, { daysAgo: 10 });
+  const week1 = await prisma.week.findFirstOrThrow({ where: { planId, weekNumber: 1 } });
+  const week1Sessions = await prisma.session.findMany({ where: { weekId: week1.id }, orderBy: { date: "asc" } });
+
+  // 2 logged with RPE 9 (rpe signal) + the rest unlogged (missed signal, well over 25%) -> reduce.
+  for (const session of week1Sessions.slice(0, 2)) {
+    await logWorkout(session.id, { rpe: 9 });
+  }
+
+  await page.goto("/dashboard");
+
+  await expect(page.getByRole("heading", { name: "Semana 2" })).toBeVisible();
+  const adjustment = await prisma.weeklyAdjustment.findUniqueOrThrow({ where: { weekId: week1.id } });
+  expect(adjustment.decision).toBe(Decision.REDUCE);
+
+  // Loading the dashboard again does not reassess week 1 a second time (relies on T17's ADJ-06).
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "Semana 2" })).toBeVisible();
+  expect(await prisma.weeklyAdjustment.count({ where: { weekId: week1.id } })).toBe(1);
+});
+
+test("after the last taper week ends before the race date, the dashboard shows that week's sessions again instead of an empty week", async ({
+  page,
+}) => {
+  const userId = await getSeededUserId();
+  const today = new Date();
+  // A 1-week plan (entirely taper): created 10 days ago, race date is today - the single
+  // generated week already ended 4 days ago, but the race hasn't happened yet (rounding leaves a
+  // few leftover days between the last week's end and the actual race day).
+  const start = new Date(today.getTime() - 10 * 86400000);
+  const { plan } = await createNewPlan({
+    userId,
+    raceType: RaceType.TEN_K,
+    raceDate: today,
+    daysPerWeek: [0, 1, 2, 3, 4, 5],
+    vdotSource: VdotSource.MANUAL,
+    result: { distanceKm: 5, timeSec: 19 * 60 + 57 },
+    today: start,
+  });
+  const weeks = await prisma.week.findMany({ where: { planId: plan.id } });
+  expect(weeks).toHaveLength(1);
+  const sessions = await prisma.session.findMany({ where: { weekId: weeks[0].id } });
+
+  await page.goto("/dashboard");
+
+  await expect(page.getByRole("heading", { name: "Semana 1" })).toBeVisible();
+  await expect(page.getByRole("listitem")).toHaveCount(sessions.length);
 });

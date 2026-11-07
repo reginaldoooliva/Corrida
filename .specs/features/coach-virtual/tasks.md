@@ -786,13 +786,13 @@ and the taper-week edge case.
 **Requirement**: DASH-04, Edge Case (taper week)
 
 **Done when**:
-- [ ] Opening the dashboard after a week ends reassesses it before the next week renders; e2e
+- [x] Opening the dashboard after a week ends reassesses it before the next week renders; e2e
       asserts it
-- [ ] A second load on the same already-reassessed week does not recompute (relies on T17)
-- [ ] After the last taper week ends before the race date, the dashboard shows that week's sessions
+- [x] A second load on the same already-reassessed week does not recompute (relies on T17)
+- [x] After the last taper week ends before the race date, the dashboard shows that week's sessions
       again rather than an empty week; e2e asserts it
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
-- [ ] Test count: 2 tests pass (no silent deletions)
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] Test count: 2 tests pass (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full
