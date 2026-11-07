@@ -447,10 +447,10 @@ Prisma transaction.
 **Requirement**: ADJ-01, Edge Case (zero-logged week)
 
 **Done when**:
-- [ ] Each of the 3 signals independently flips at its documented threshold
-- [ ] A week with zero logged sessions resolves `missed = true`, pace/RPE signals `false` (no data)
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 5 tests pass (no silent deletions)
+- [x] Each of the 3 signals independently flips at its documented threshold
+- [x] A week with zero logged sessions resolves `missed = true`, pace/RPE signals `false` (no data)
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 5 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick
