@@ -215,9 +215,9 @@ unique index `Plan (userId) WHERE status = 'ACTIVE'` (backs `LIFE-06`) via raw S
 **Requirement**: LIFE-06 (DB-level backstop)
 
 **Done when**:
-- [ ] `npx prisma migrate dev` applies cleanly against the Supabase dev database
-- [ ] The partial unique index exists (verified via `\d+ "Plan"` in `psql` or an inline query)
-- [ ] Attempting to insert a second `ACTIVE` plan for the same user at the SQL level fails
+- [x] `npx prisma migrate dev` applies cleanly against the Supabase dev database
+- [x] The partial unique index exists (verified via `\d+ "Plan"` in `psql` or an inline query)
+- [x] Attempting to insert a second `ACTIVE` plan for the same user at the SQL level fails
 
 **Tests**: none
 **Gate**: build
@@ -235,9 +235,9 @@ env vars, hashing the password with bcrypt before storing it.
 **Requirement**: AUTH-04, AUTH-05 (provisioning path)
 
 **Done when**:
-- [ ] `npm run seed` creates exactly one `User` row
-- [ ] Running it twice does not create a duplicate (upsert by username)
-- [ ] The stored `passwordHash` is a bcrypt hash, never the plaintext env value
+- [x] `npm run seed` creates exactly one `User` row
+- [x] Running it twice does not create a duplicate (upsert by username)
+- [x] The stored `passwordHash` is a bcrypt hash, never the plaintext env value
 
 **Tests**: none
 **Gate**: build
@@ -1292,15 +1292,14 @@ Proof: run e2e | ✓ dashboard.spec.ts > after the last taper week ends before t
 
 The feature's live state, written as it happens - a compaction gives no warning.
 
-**Settled mid-build:** T3/T4 blocker - no `DATABASE_URL`/`DIRECT_URL` Supabase credentials and no
-reachable local Postgres (Docker daemon not running, no local `psql`) were available in this
-environment. `prisma/migrations/20261107191423_init/migration.sql` was generated offline via
-`npx prisma migrate diff --from-empty --to-schema-datamodel` (schema-correct, no DB connection
-needed) and hand-edited to add the `LIFE-06` partial unique index; it was never run with
-`npx prisma migrate dev` against a live database, so the "applies cleanly against Supabase",
-"index verified via psql", and "second ACTIVE insert fails" Done-when items for T3 are unchecked.
-T4's seed script and T5's live-DB-dependent checks carry the same unresolved blocker. Needs
-user-provided Supabase (or other reachable Postgres) credentials in `.env` to close out.
+**Settled mid-build:** T3/T4 live-DB blocker (above) resolved 2026-11-07 - user provided Supabase
+pooled `DATABASE_URL` (6543) and `DIRECT_URL` (5432) credentials, written to local `.env`
+(gitignored). `npx prisma migrate deploy` applied `20261107191423_init` cleanly; verified live via
+a scratch script: `pg_indexes` shows `Plan_userId_active_key` as
+`CREATE UNIQUE INDEX ... ON public."Plan" USING btree ("userId") WHERE (status = 'ACTIVE')`, a
+second `ACTIVE` plan insert for the same user fails with `P2002`, `npm run seed` produced exactly
+one `User` row (re-run twice, no duplicate), and its `passwordHash` is bcrypt-shaped (`$2b$...`).
+All T3/T4 Done-when items are now checked.
 
 T7's file is `proxy.ts`, not `middleware.ts` as tasks.md names it: Next.js 16 (resolved by
 `create-next-app@latest` in T1) renamed and requires the convention as `proxy.ts` -
