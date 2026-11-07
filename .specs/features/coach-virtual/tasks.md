@@ -1327,11 +1327,35 @@ issue (other apps - VS Code, Chrome, multiple Claude processes - plus Windows me
 leave too little headroom for the type-check worker's V8 heap), not a code defect. `typecheck`
 (`tsc --noEmit`) and `lint` both pass standalone. User decision 2026-11-07: proceed to Batch 3
 rather than pause to free memory now; retry the full Build gate later when more headroom is
-available (before `check_proofs.py` and again before T40's deploy).
+available (before `check_proofs.py` and again before T40's deploy). Resolved at Batch 3's
+phase-end Build gate (`13baa4e`): build/typecheck/lint all green with no `NODE_OPTIONS` override -
+the OOM did not recur, confirming it was transient machine memory pressure, not a standing issue.
+
+Phase 3 deviations (for the Verifier to review): `applyDecision`'s signature grew a third
+argument `{ currentWeek, vdot }` (design.md only showed 2 args) - `maintain` needs the current
+week to clone and `reduce` needs the plan's VDOT to re-derive the stepped-down pace via
+`paceForVdot`; a `SPEC_DEVIATION` comment is in `lib/domain/weekly-adjustment.ts`. `reduce` steps
+Tempo->Easy, Interval->Tempo, cuts distance/duration x0.8 (duration rounded to whole minutes -
+Int column; distance to 2 decimals). `maintain` clones the current week's sessions with dates
+shifted +7 days onto the same weekdays. `computeSignals` thresholds are inclusive, integer math
+(no float error at exactly 5%), uses only logged sessions for pace/RPE. `reassessIfDue` inserts
+the `WeeklyAdjustment` row first (so a duplicate hits the unique constraint - caught `P2002` ->
+null - before touching next week's sessions), updates next week's sessions in place (not
+delete+recreate, since a session may carry a future-dated log already), and does not itself check
+the week has ended (the dashboard caller, T29, must pass an already-ended week).
+
+**Known edge case flagged for the T19-T24 batch:** `reassessIfDue`'s `maintain` path pairs the
+ended week's sessions with the next week's by position/index: if a mid-plan days-per-week edit
+(T23's `recalculateFromCurrentWeek`) ever leaves an ended week and its following week with a
+different session count, that pairing breaks. Does not happen in the normal flow (both weeks are
+generated with the same `daysPerWeek` until an edit changes it) - check whether T23's
+recalculation can land adjacent to an unreassessed week with a different day count, and if so,
+either guard against it or document it as an accepted limitation.
 **Dispatched:** Batch 1 (Phase 1: T1-T7) dispatched 2026-11-07, pre-HEAD 4ebd525 - returned, all
 complete. Batch 2 (Phase 2: T8-T13) dispatched 2026-11-07, pre-HEAD 6279836 - returned, all
 complete (Build gate deferred per above). Batch 3 (Phase 3: T14-T18) dispatched 2026-11-07,
-pre-HEAD 2df1b70
+pre-HEAD 2df1b70 - returned, all complete, Build gate green. Batch 4 (Phase 4+5: T19-T25)
+dispatched 2026-11-07, pre-HEAD 13baa4e
 **Walked:** none
 
 ---
