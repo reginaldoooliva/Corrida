@@ -1292,7 +1292,15 @@ Proof: run e2e | ✓ dashboard.spec.ts > after the last taper week ends before t
 
 The feature's live state, written as it happens - a compaction gives no warning.
 
-**Settled mid-build:** none
+**Settled mid-build:** T3/T4 blocker - no `DATABASE_URL`/`DIRECT_URL` Supabase credentials and no
+reachable local Postgres (Docker daemon not running, no local `psql`) were available in this
+environment. `prisma/migrations/20261107191423_init/migration.sql` was generated offline via
+`npx prisma migrate diff --from-empty --to-schema-datamodel` (schema-correct, no DB connection
+needed) and hand-edited to add the `LIFE-06` partial unique index; it was never run with
+`npx prisma migrate dev` against a live database, so the "applies cleanly against Supabase",
+"index verified via psql", and "second ACTIVE insert fails" Done-when items for T3 are unchecked.
+T4's seed script and T5's live-DB-dependent checks carry the same unresolved blocker. Needs
+user-provided Supabase (or other reachable Postgres) credentials in `.env` to close out.
 **Dispatched:** Batch 1 (Phase 1: T1-T7) dispatched 2026-11-07, pre-HEAD 4ebd525
 **Walked:** none
 
