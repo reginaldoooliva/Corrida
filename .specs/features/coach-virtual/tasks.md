@@ -576,10 +576,10 @@ T8's `calculateVdot`, adds a `VdotHistory` entry with `source = race`.
 **Requirement**: LIFE-03
 
 **Done when**:
-- [ ] Saving a finish time creates exactly one `RaceResult` and one new `VdotHistory` (`source = race`)
-- [ ] The computed VDOT matches `calculateVdot(raceDistance, finishTimeSec)`
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 2 tests pass (no silent deletions)
+- [x] Saving a finish time creates exactly one `RaceResult` and one new `VdotHistory` (`source = race`)
+- [x] The computed VDOT matches `calculateVdot(raceDistance, finishTimeSec)`
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 2 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick
