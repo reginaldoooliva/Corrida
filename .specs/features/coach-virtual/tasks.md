@@ -665,11 +665,11 @@ exists for the user (defense in depth alongside T3's DB index).
 **Requirement**: VDOT-05, VDOT-06 (recompute half)
 
 **Done when**:
-- [ ] `isRetestDue` is `false` at 3 weeks 6 days and `true` at exactly 4 weeks
-- [ ] `recomputeFuturePaces` updates every not-yet-done session's planned pace and leaves `done`
+- [x] `isRetestDue` is `false` at 3 weeks 6 days and `true` at exactly 4 weeks
+- [x] `recomputeFuturePaces` updates every not-yet-done session's planned pace and leaves `done`
       sessions untouched
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
-- [ ] Test count: 3 tests pass (no silent deletions)
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Test count: 3 tests pass (no silent deletions)
 
 **Tests**: unit
 **Gate**: quick

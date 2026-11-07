@@ -1,5 +1,7 @@
 import { SessionType } from "@prisma/client";
 
+import { prisma } from "@/lib/prisma";
+
 // Jack Daniels / Jimmy Gilbert VDOT model (Daniels' Running Formula).
 
 // Oxygen cost (ml/kg/min) of running at `velocity` metres per minute.
@@ -53,4 +55,42 @@ export function paceForVdot(
   const c = -4.6 - vo2;
   const velocity = (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a);
   return { secPerKm: Math.round(60000 / velocity) };
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const RETEST_INTERVAL_DAYS = 28;
+
+function utcDayNumber(date: Date): number {
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) / DAY_MS;
+}
+
+// Spec VDOT-05: a retest is due once the latest VDOT entry is 4 or more weeks old.
+export function isRetestDue(lastVdotHistoryDate: Date, today: Date): boolean {
+  return utcDayNumber(today) - utcDayNumber(lastVdotHistoryDate) >= RETEST_INTERVAL_DAYS;
+}
+
+// Spec VDOT-06 (recompute half): re-derive the planned pace of every session not yet done (no
+// WorkoutLog) in the current week and later ones.
+// SPEC_DEVIATION: tasks.md lists `recomputeFuturePaces(planId, newVdot)`; this takes `today` too.
+// Reason: "the current week" depends on the date; passing it keeps this testable.
+export async function recomputeFuturePaces(
+  planId: string,
+  newVdot: number,
+  today: Date,
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const weeks = await tx.week.findMany({
+      where: { planId },
+      include: { sessions: { include: { workoutLog: true } } },
+    });
+    const pending = weeks
+      .filter((w) => utcDayNumber(w.endDate) >= utcDayNumber(today))
+      .flatMap((w) => w.sessions.filter((s) => !s.workoutLog));
+    for (const s of pending) {
+      await tx.session.update({
+        where: { id: s.id },
+        data: { plannedPaceSecPerKm: paceForVdot(newVdot, s.type).secPerKm },
+      });
+    }
+  });
 }
