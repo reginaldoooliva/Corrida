@@ -992,11 +992,11 @@ display paths in the same task.
 **Requirement**: SET-01, SET-03
 
 **Done when**:
-- [ ] All 4 fields render for an active plan; e2e asserts it
-- [ ] With no active plan, settings says so and links to `/plan/new` instead of showing empty
+- [x] All 4 fields render for an active plan; e2e asserts it
+- [x] With no active plan, settings says so and links to `/plan/new` instead of showing empty
       fields; e2e asserts it
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
-- [ ] Test count: 2 tests pass (no silent deletions)
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] Test count: 2 tests pass (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full
@@ -1457,7 +1457,15 @@ The new domain functions are covered by the e2e only (the vitest prisma mock has
 orderBy/include on `plan.findFirst`). The LIFE-06 message stays T22's English text. Done-when item 2
 (no RaceResult -> currentVdot) is proven by T21's unit test, not a new e2e. Gate: unit 76, e2e 30
 passed. Committed on branch `feat/t37-vdot-carry-over` for a PR into `main` (user asked for a PR;
-`gh` is not installed and the GitHub connector rejected its token, so the PR is opened by hand).
+`gh` is not installed and the GitHub connector rejected its token, so the PR is opened by hand). PR #1 opened from the
+built-in browser, then merged into `main` with a merge commit (`c2336f8`) on the user's go-ahead
+("Mesclar e seguir") after `gh` was installed and signed in.
+
+T38 notes (2026-11-08): `/settings` shows the ACTIVE plan in a `<dl>` inside
+`<section aria-label="Plano ativo">`: Prova, Data da prova (YYYY-MM-DD), Dias de treino (weekday
+labels in week order, "Seg, Qua, Sáb") and VDOT atual (`currentVdot`, one decimal). No active plan:
+"Nenhum plano ativo." and a "Criar um novo plano" link to `/plan/new`. No link to `/settings` exists
+yet on the dashboard (same as `/history`; flag for T41/T43). Gate: unit 76, e2e 32 passed.
 **Walked:** none
 
 T30 notes (resumed inline): added `recordVdotRetest(planId, result, today)` in
