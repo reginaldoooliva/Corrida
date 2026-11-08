@@ -19,3 +19,9 @@ export async function saveWorkoutLog(sessionId: string, input: WorkoutLogInput):
     update: input,
   });
 }
+
+// Spec LOG-04: removing the log is all it takes - the session's status is derived (done while a
+// log exists, otherwise missed once its date has passed, pending until then).
+export async function deleteWorkoutLog(sessionId: string): Promise<void> {
+  await prisma.workoutLog.deleteMany({ where: { sessionId } });
+}

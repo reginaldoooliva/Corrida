@@ -124,7 +124,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 <span>Pace real: {formatPace(session.workoutLog.actualPaceSecPerKm)}</span>
               )}
               <span>{STATUS_LABEL[status]}</span>
-              {!session.workoutLog && <Link href={`/dashboard/log/${session.id}`}>Registrar treino</Link>}
+              <Link href={`/dashboard/log/${session.id}`}>
+                {session.workoutLog ? "Editar registro" : "Registrar treino"}
+              </Link>
             </li>
           );
         })}

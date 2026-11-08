@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { saveWorkoutLog } from "@/lib/domain/workout-log";
+import { deleteWorkoutLog, saveWorkoutLog } from "@/lib/domain/workout-log";
 
 // Spec LOG-02 bounds. Each field's message names the field, so the form can say which one is
 // invalid. Pace is typed as mm:ss (per km) and must come out positive.
@@ -62,6 +62,13 @@ export async function submitWorkoutLog(sessionId: string, formData: FormData): P
     rpe: parsed.data.rpe,
   });
 
+  revalidatePath("/dashboard");
+  redirect("/dashboard");
+}
+
+// Spec LOG-04/05: delete the session's log, whatever its week's reassessment state.
+export async function removeWorkoutLog(sessionId: string): Promise<void> {
+  await deleteWorkoutLog(sessionId);
   revalidatePath("/dashboard");
   redirect("/dashboard");
 }

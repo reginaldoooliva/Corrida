@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { getSeededUserId, login, resetPlans, seedActivePlan } from "./helpers";
+import { getSeededUserId, login, logWorkout, resetPlans, seedActivePlan } from "./helpers";
 import { prisma } from "../lib/prisma";
 
 test.beforeEach(async ({ page }) => {
@@ -76,5 +76,94 @@ test("an out-of-range field is rejected and named in the error", async ({ page }
     }
   }
 
+  expect(await prisma.workoutLog.count({ where: { sessionId: session.id } })).toBe(0);
+});
+
+const dayOf = (date: Date) => date.toISOString().slice(0, 10);
+
+test("editing a log overwrites its stored values", async ({ page }) => {
+  const userId = await getSeededUserId();
+  const { planId } = await seedActivePlan(userId);
+  const session = await firstUnloggedSession(planId);
+  await logWorkout(session.id, { actualPaceSecPerKm: 300, actualDistanceKm: 5, actualDurationMin: 25, rpe: 5 });
+
+  await page.goto("/dashboard");
+  const row = page.getByRole("listitem").filter({ hasText: dayOf(session.date) });
+  await row.getByRole("link", { name: "Editar registro" }).click();
+  await expect(page.getByRole("heading", { name: "Editar registro" })).toBeVisible();
+  // The form shows the stored values before they are overwritten.
+  await expect(page.getByLabel("Pace (mm:ss por km)")).toHaveValue("5:00");
+  await expect(page.getByLabel("RPE (1 a 10)")).toHaveValue("5");
+  await fillLogForm(page, { pace: "4:50", distanceKm: "10.5", durationMin: "51", rpe: "8" });
+
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByRole("listitem").filter({ hasText: dayOf(session.date) })).toContainText(
+    "Pace real: 4:50/km",
+  );
+  const logs = await prisma.workoutLog.findMany({ where: { sessionId: session.id } });
+  expect(logs).toHaveLength(1);
+  expect(logs[0]).toMatchObject({ actualPaceSecPerKm: 290, actualDistanceKm: 10.5, actualDurationMin: 51, rpe: 8 });
+});
+
+test("deleting a log reverts the session to pending or missed", async ({ page }) => {
+  test.setTimeout(120000);
+  const userId = await getSeededUserId();
+  // Week 1 started 3 days ago: it holds sessions both before and after today.
+  const { planId } = await seedActivePlan(userId, { daysAgo: 3 });
+  const week = await prisma.week.findFirstOrThrow({ where: { planId }, orderBy: { weekNumber: "asc" } });
+  const todayStart = new Date(dayOf(new Date()));
+  const past = await prisma.session.findFirstOrThrow({ where: { weekId: week.id, date: { lt: todayStart } } });
+  const future = await prisma.session.findFirstOrThrow({
+    where: { weekId: week.id, date: { gt: new Date(todayStart.getTime() + 86400000) } },
+  });
+
+  for (const { session, expected } of [
+    { session: past, expected: "Perdida" },
+    { session: future, expected: "Pendente" },
+  ]) {
+    await logWorkout(session.id);
+    await page.goto("/dashboard");
+    const row = page.getByRole("listitem").filter({ hasText: dayOf(session.date) });
+    await expect(row).toContainText("Feito");
+    await row.getByRole("link", { name: "Editar registro" }).click();
+    await page.getByRole("button", { name: "Apagar registro" }).click();
+
+    await expect(page).toHaveURL(/\/dashboard$/);
+    const reverted = page.getByRole("listitem").filter({ hasText: dayOf(session.date) });
+    await expect(reverted).toContainText(expected);
+    await expect(reverted).not.toContainText("Feito");
+    await expect(reverted).not.toContainText("Pace real");
+    expect(await prisma.workoutLog.count({ where: { sessionId: session.id } })).toBe(0);
+  }
+});
+
+test("a session in an already-reassessed week can still be logged, edited and deleted", async ({ page }) => {
+  test.setTimeout(120000);
+  const userId = await getSeededUserId();
+  // Week 1 ended 3 days ago; opening the dashboard reassesses it (DASH-04).
+  const { planId } = await seedActivePlan(userId, { daysAgo: 10 });
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "Semana 2" })).toBeVisible();
+  const week1 = await prisma.week.findFirstOrThrow({ where: { planId, weekNumber: 1 } });
+  expect(week1.reassessedAt).not.toBeNull();
+  const session = await prisma.session.findFirstOrThrow({ where: { weekId: week1.id } });
+
+  await page.goto(`/dashboard/log/${session.id}`);
+  await fillLogForm(page, VALID);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  expect(await prisma.workoutLog.findUnique({ where: { sessionId: session.id } })).toMatchObject({
+    actualPaceSecPerKm: 310,
+    rpe: 6,
+  });
+
+  await page.goto(`/dashboard/log/${session.id}`);
+  await expect(page.getByLabel("RPE (1 a 10)")).toHaveValue("6");
+  await fillLogForm(page, { ...VALID, rpe: "9" });
+  await expect(page).toHaveURL(/\/dashboard$/);
+  expect(await prisma.workoutLog.findUnique({ where: { sessionId: session.id } })).toMatchObject({ rpe: 9 });
+
+  await page.goto(`/dashboard/log/${session.id}`);
+  await page.getByRole("button", { name: "Apagar registro" }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
   expect(await prisma.workoutLog.count({ where: { sessionId: session.id } })).toBe(0);
 });
