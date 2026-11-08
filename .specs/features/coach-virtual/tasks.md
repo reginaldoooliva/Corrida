@@ -1043,9 +1043,9 @@ completing the full P1-I and P1-J Independent Tests.
 **Requirement**: -
 
 **Done when**:
-- [ ] The app is reachable at its Vercel URL and the login/dashboard flow works against the
+- [x] The app is reachable at its Vercel URL and the login/dashboard flow works against the
       production database
-- [ ] `DATABASE_URL` is the pooled (6543) connection string and `DIRECT_URL` is the direct (5432) one
+- [x] `DATABASE_URL` is the pooled (6543) connection string and `DIRECT_URL` is the direct (5432) one
 
 **Tests**: none
 **Gate**: build
@@ -1477,6 +1477,25 @@ against the live DB (5.1s+ for ~10 weeks) - T23's unit tests use the mocked pris
 it. Raised to 20s like `createPlan` (SPEC_DEVIATION in plan-lifecycle.ts). Touched beyond
 **Where**: `lib/domain/plan-lifecycle.ts`. Phase 11 Build gate: build, typecheck and lint green.
 Gate: unit 76, e2e 34 passed.
+
+T40 notes (2026-11-08, user go-ahead "Sim, fazer o deploy"; answers: production on a **new**
+Supabase project, Vercel via GitHub import): `package.json` gained `postinstall: prisma generate`
+(`bc81915`; Vercel caches node_modules). Production Supabase ref `axhl...` (dev is `iojec...`),
+`DATABASE_URL` pooled 6543 with `pgbouncer=true`, `DIRECT_URL` 5432 - checked by a scratch script
+that prints hosts/ports only. `prisma migrate deploy` applied `20261107191423_init`; the seed made
+1 bcrypt user; the partial unique index exists. Vercel project `reg8/corrida`, production domain
+https://corrida-kappa.vercel.app, auto-deploys `main`; env vars DATABASE_URL, DIRECT_URL,
+NEXTAUTH_SECRET (set by the user). Verified: `/dashboard` signed out -> 307 `/login`; a wrong login
+-> CredentialsSignin (DB reached); the user signed in and created a plan through the form.
+**Incident:** production secrets first sat in `.env.production.local`, which `next start` and the
+e2e helpers load over `.env` - one gate run hit production and left a test plan (nothing real was
+there yet). Run stopped; the test plan and a user trial plan deleted on the user's explicit OK;
+file renamed `.env.deploy.local`; `playwright.config.ts` now refuses to run with
+`.env.local`/`.env.production`/`.env.production.local` present. `/` served the create-next-app
+placeholder in production; now redirects to `/dashboard` (e2e in auth.spec.ts). Both in the fix
+commit after `bc81915`. Gate: unit 76, e2e 35 passed (dev DB), production untouched.
+UI nits seen in production, for T41/T42: "1 semanas" plural; the "Plano criado" summary has no
+link to the dashboard; a concurrent double submit surfaces Prisma's raw P2002 text.
 **Walked:** none
 
 T30 notes (resumed inline): added `recordVdotRetest(planId, result, today)` in
