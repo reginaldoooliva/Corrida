@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { getSeededUserId, login, resetPlans } from "./helpers";
+import { appToday } from "../lib/domain/clock";
 
 test.beforeEach(async ({ page }) => {
   await resetPlans(await getSeededUserId());
@@ -19,7 +20,7 @@ async function establishVdotManually(page: Page, distanceKm: number, minutes: nu
 }
 
 function dateDaysFromNow(days: number): string {
-  return new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+  return new Date(appToday().getTime() + days * 86400000).toISOString().slice(0, 10);
 }
 
 test("new plan offers guided test or manual time entry", async ({ page }) => {

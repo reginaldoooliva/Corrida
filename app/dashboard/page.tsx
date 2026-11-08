@@ -5,6 +5,7 @@ import Link from "next/link";
 import { RETEST_DISMISS_COOKIE } from "./constants";
 import { RaceResultPrompt } from "./race-result-prompt";
 import { RetestPrompt } from "./retest-prompt";
+import { appToday } from "@/lib/domain/clock";
 import { getSeededUserId } from "@/lib/domain/auth";
 import { archiveIfPast } from "@/lib/domain/plan-lifecycle";
 import { deriveSessionStatus, type SessionStatus } from "@/lib/domain/session-status";
@@ -48,7 +49,7 @@ interface DashboardPageProps {
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const { retestError, raceResultError } = await searchParams;
   const userId = await getSeededUserId();
-  const today = new Date();
+  const today = appToday();
 
   // Spec LIFE-01: once its race date has passed, the active plan is archived before anything renders.
   const active = await prisma.plan.findFirst({ where: { userId, status: PlanStatus.ACTIVE } });

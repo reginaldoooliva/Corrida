@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { getSeededUserId, login, logWorkout, resetPlans, seedActivePlan } from "./helpers";
 import { prisma } from "../lib/prisma";
+import { appToday } from "../lib/domain/clock";
 
 test.beforeEach(async ({ page }) => {
   const userId = await getSeededUserId();
@@ -111,7 +112,7 @@ test("deleting a log reverts the session to pending or missed", async ({ page })
   // Week 1 started 3 days ago: it holds sessions both before and after today.
   const { planId } = await seedActivePlan(userId, { daysAgo: 3 });
   const week = await prisma.week.findFirstOrThrow({ where: { planId }, orderBy: { weekNumber: "asc" } });
-  const todayStart = new Date(dayOf(new Date()));
+  const todayStart = appToday();
   const past = await prisma.session.findFirstOrThrow({ where: { weekId: week.id, date: { lt: todayStart } } });
   const future = await prisma.session.findFirstOrThrow({
     where: { weekId: week.id, date: { gt: new Date(todayStart.getTime() + 86400000) } },

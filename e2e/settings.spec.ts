@@ -5,6 +5,7 @@ import { DAYS_PER_WEEK_ERROR } from "../lib/domain/plan-generator";
 import { RACE_DATE_ERROR } from "../lib/domain/plan-lifecycle";
 import { paceForVdot } from "../lib/domain/vdot";
 import { prisma } from "../lib/prisma";
+import { appToday } from "../lib/domain/clock";
 
 test.beforeEach(async ({ page }) => {
   const userId = await getSeededUserId();
@@ -119,7 +120,7 @@ test("editing to an invalid race date or day count is rejected with the plan-cre
 
   // A race date before the current week.
   await page.goto("/settings");
-  await page.getByLabel("Nova data da prova").fill(new Date(Date.now() - 30 * DAY_MS).toISOString().slice(0, 10));
+  await page.getByLabel("Nova data da prova").fill(new Date(appToday().getTime() - 30 * DAY_MS).toISOString().slice(0, 10));
   await page.getByRole("button", { name: "Salvar alterações" }).click();
   await expect(alert).toHaveText(RACE_DATE_ERROR);
 

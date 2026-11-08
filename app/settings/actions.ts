@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { appToday } from "@/lib/domain/clock";
 import { getSeededUserId } from "@/lib/domain/auth";
 import type { Weekday } from "@/lib/domain/plan-generator";
 import { recalculateFromCurrentWeek } from "@/lib/domain/plan-lifecycle";
@@ -37,7 +38,7 @@ export async function updatePlanSettings(formData: FormData): Promise<void> {
     await recalculateFromCurrentWeek(
       plan.id,
       { raceDate: parsed.data.raceDate, days: parsed.data.days as Weekday[] },
-      new Date(),
+      appToday(),
     );
   } catch (error) {
     backWithError(error instanceof Error ? error.message : "Não foi possível salvar as alterações.");

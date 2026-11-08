@@ -1555,6 +1555,16 @@ unit tests:
   parallel workers reproducibly OOM the Node process (V8 "Zone Allocation failed") on top of the
   already-documented build-time OOM.
 
+Post-T40 fix (timezone, before T41): every "today" in the app was `new Date()`, compared by UTC
+day against the UTC-midnight calendar dates the domain stores. In Brazil (UTC-3) the UTC day
+turns at 21:00 local, so from then on today's sessions showed as "Perdida", a week was reassessed
+on its last evening, and the retest-dismiss cookie expired early. New `lib/domain/clock.ts`
+`appToday()` returns the local calendar day (`APP_TIME_ZONE`, default `America/Sao_Paulo`) as a
+UTC-midnight Date; all app call sites and the e2e helpers/specs use it, so the suite agrees with
+the app at any hour. Side effect, intended: `week.endDate < today` now reassesses a week the day
+after its last day, not during it. The T30 note above ("UTC date" for the cookie) now reads as
+the local date.
+
 ---
 
 ## Phase Execution Map

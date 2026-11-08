@@ -1,6 +1,7 @@
 import { PlanStatus, RaceType } from "@prisma/client";
 import Link from "next/link";
 
+import { appToday } from "@/lib/domain/clock";
 import { getSeededUserId } from "@/lib/domain/auth";
 import { weeklyAdherence } from "@/lib/domain/session-status";
 import { prisma } from "@/lib/prisma";
@@ -155,7 +156,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
     );
   }
 
-  const today = new Date();
+  const today = appToday();
   const pacePoints = plan.weeks.flatMap((w) =>
     w.sessions.flatMap((s) =>
       s.workoutLog ? [{ date: s.date, planned: s.plannedPaceSecPerKm, actual: s.workoutLog.actualPaceSecPerKm }] : [],

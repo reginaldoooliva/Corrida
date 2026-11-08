@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { appToday } from "@/lib/domain/clock";
 import { isPlausibleRaceTime, recordRaceResult } from "@/lib/domain/plan-lifecycle";
 import { recordVdotRetest } from "@/lib/domain/vdot";
 import { prisma } from "@/lib/prisma";
@@ -32,7 +33,7 @@ export async function submitRetestResult(planId: string, formData: FormData): Pr
 
   const timeSec = parsed.data.minutes * 60 + parsed.data.seconds;
   try {
-    await recordVdotRetest(planId, { distanceKm: parsed.data.distanceKm, timeSec }, new Date());
+    await recordVdotRetest(planId, { distanceKm: parsed.data.distanceKm, timeSec }, appToday());
   } catch (error) {
     const message = error instanceof Error ? error.message : "Não foi possível salvar o resultado.";
     redirect(`/dashboard?retestError=${encodeURIComponent(message)}`);
@@ -45,7 +46,7 @@ export async function submitRetestResult(planId: string, formData: FormData): Pr
 // Spec VDOT-07: dismissing hides the banner for the day only - a cookie dated today is the
 // simplest state that resets itself the next calendar day, no extra table needed.
 export async function dismissRetestPrompt(): Promise<void> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = appToday().toISOString().slice(0, 10);
   const jar = await cookies();
   jar.set(RETEST_DISMISS_COOKIE, today, { path: "/" });
   revalidatePath("/dashboard");

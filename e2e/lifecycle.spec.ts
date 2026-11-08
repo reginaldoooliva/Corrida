@@ -5,6 +5,7 @@ import { getSeededUserId, login, resetPlans, seedActivePlan } from "./helpers";
 import { recordRaceResult } from "../lib/domain/plan-lifecycle";
 import { calculateVdot } from "../lib/domain/vdot";
 import { prisma } from "../lib/prisma";
+import { appToday } from "../lib/domain/clock";
 
 test.beforeEach(async ({ page }) => {
   const userId = await getSeededUserId();
@@ -16,7 +17,7 @@ const DAY_MS = 86400000;
 
 // Moves an active plan's race to yesterday, so the next dashboard load archives it (LIFE-01).
 async function raceWasYesterday(planId: string): Promise<void> {
-  await prisma.plan.update({ where: { id: planId }, data: { raceDate: new Date(Date.now() - DAY_MS) } });
+  await prisma.plan.update({ where: { id: planId }, data: { raceDate: new Date(appToday().getTime() - DAY_MS) } });
 }
 
 const prompt = (page: import("@playwright/test").Page) =>
@@ -73,7 +74,7 @@ test("submitting a finish time saves the result and hides the prompt", async ({ 
   ).toBe(1);
 });
 
-const dateDaysFromNow = (days: number) => new Date(Date.now() + days * DAY_MS).toISOString().slice(0, 10);
+const dateDaysFromNow = (days: number) => new Date(appToday().getTime() + days * DAY_MS).toISOString().slice(0, 10);
 
 async function fillRaceForm(page: import("@playwright/test").Page) {
   await page.getByLabel(/10km/).check();

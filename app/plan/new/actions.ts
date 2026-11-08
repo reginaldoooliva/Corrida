@@ -4,6 +4,7 @@ import { RaceType, VdotSource } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { appToday } from "@/lib/domain/clock";
 import { getSeededUserId } from "@/lib/domain/auth";
 import type { Weekday } from "@/lib/domain/plan-generator";
 import { ActivePlanExistsError, createNewPlan, createPlanFromCarryOver } from "@/lib/domain/plan-lifecycle";
@@ -57,7 +58,7 @@ export async function createPlanAction(
       daysPerWeek: parsed.data.days as Weekday[],
       vdotSource: vdotResult.source === "TEST" ? VdotSource.TEST : VdotSource.MANUAL,
       result: { distanceKm: vdotResult.distanceKm, timeSec: vdotResult.timeSec },
-      today: new Date(),
+      today: appToday(),
     });
     createdPlanId = plan.id;
   } catch (error) {
@@ -94,7 +95,7 @@ export async function createCarryOverPlanAction(formData: FormData): Promise<voi
       raceDate: parsed.data.raceDate,
       daysPerWeek: parsed.data.days as Weekday[],
       vdot: parsed.data.vdot,
-      today: new Date(),
+      today: appToday(),
     });
     createdPlanId = plan.id;
   } catch (error) {

@@ -5,6 +5,7 @@ import { expect, type Page } from "@playwright/test";
 import { createNewPlan } from "../lib/domain/plan-lifecycle";
 import type { Weekday } from "../lib/domain/plan-generator";
 import { prisma } from "../lib/prisma";
+import { appToday } from "../lib/domain/clock";
 
 // The seeded account (prisma/seed.ts) comes from the same .env the app reads, same pattern as
 // auth.spec.ts.
@@ -49,7 +50,7 @@ export async function seedActivePlan(
   userId: string,
   opts: { daysAgo?: number; days?: Weekday[] } = {},
 ): Promise<{ planId: string }> {
-  const today = new Date();
+  const today = appToday();
   const start = new Date(today.getTime() - (opts.daysAgo ?? 3) * 86400000);
   const raceDate = new Date(today.getTime() + 70 * 86400000);
   const { plan } = await createNewPlan({
@@ -73,7 +74,7 @@ export async function backdateLatestVdot(planId: string, daysAgo: number): Promi
   });
   await prisma.vdotHistory.update({
     where: { id: entry.id },
-    data: { date: new Date(Date.now() - daysAgo * 86400000) },
+    data: { date: new Date(appToday().getTime() - daysAgo * 86400000) },
   });
 }
 

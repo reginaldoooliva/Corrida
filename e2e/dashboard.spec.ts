@@ -11,6 +11,7 @@ import {
 } from "./helpers";
 import { createNewPlan } from "../lib/domain/plan-lifecycle";
 import { prisma } from "../lib/prisma";
+import { appToday } from "../lib/domain/clock";
 
 test.beforeEach(async ({ page }) => {
   const userId = await getSeededUserId();
@@ -38,7 +39,7 @@ test("shows the current week's sessions in date order with type, pace and distan
 test("a past session with no log shows as missed", async ({ page }) => {
   const userId = await getSeededUserId();
   const { planId } = await seedActivePlan(userId, { daysAgo: 3 });
-  const today = new Date();
+  const today = appToday();
   const week = await prisma.week.findFirstOrThrow({ where: { planId }, orderBy: { weekNumber: "asc" } });
   const pastSession = await prisma.session.findFirstOrThrow({
     where: { weekId: week.id, date: { lt: new Date(today.toISOString().slice(0, 10)) } },
@@ -53,7 +54,7 @@ test("a past session with no log shows as missed", async ({ page }) => {
 test("a logged session shows as done with the actual pace next to the planned pace", async ({ page }) => {
   const userId = await getSeededUserId();
   const { planId } = await seedActivePlan(userId, { daysAgo: 3 });
-  const today = new Date();
+  const today = appToday();
   const week = await prisma.week.findFirstOrThrow({ where: { planId }, orderBy: { weekNumber: "asc" } });
   const pastSession = await prisma.session.findFirstOrThrow({
     where: { weekId: week.id, date: { lt: new Date(today.toISOString().slice(0, 10)) } },
@@ -97,7 +98,7 @@ test("after the last taper week ends before the race date, the dashboard shows t
   page,
 }) => {
   const userId = await getSeededUserId();
-  const today = new Date();
+  const today = appToday();
   // A 1-week plan (entirely taper): created 10 days ago, race date is today - the single
   // generated week already ended 4 days ago, but the race hasn't happened yet (rounding leaves a
   // few leftover days between the last week's end and the actual race day).

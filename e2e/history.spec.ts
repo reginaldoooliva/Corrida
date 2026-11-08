@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 import { getSeededUserId, login, logWorkout, resetPlans, seedActivePlan } from "./helpers";
 import { recordRaceResult } from "../lib/domain/plan-lifecycle";
 import { prisma } from "../lib/prisma";
+import { appToday } from "../lib/domain/clock";
 
 test.beforeEach(async ({ page }) => {
   const userId = await getSeededUserId();
@@ -22,14 +23,14 @@ test("shows a VDOT-over-time chart built from VdotHistory", async ({ page }) => 
   const { planId: oldPlanId } = await seedActivePlan(userId);
   await prisma.plan.update({ where: { id: oldPlanId }, data: { status: PlanStatus.ARCHIVED } });
   await prisma.vdotHistory.create({
-    data: { planId: oldPlanId, date: new Date(Date.now() - 200 * DAY_MS), vdot: 38.4, source: VdotSource.RECALC },
+    data: { planId: oldPlanId, date: new Date(appToday().getTime() - 200 * DAY_MS), vdot: 38.4, source: VdotSource.RECALC },
   });
 
   const { planId } = await seedActivePlan(userId);
   await prisma.vdotHistory.createMany({
     data: [
-      { planId, date: new Date(Date.now() - 60 * DAY_MS), vdot: 47.3, source: VdotSource.RECALC },
-      { planId, date: new Date(Date.now() - 30 * DAY_MS), vdot: 48.6, source: VdotSource.RECALC },
+      { planId, date: new Date(appToday().getTime() - 60 * DAY_MS), vdot: 47.3, source: VdotSource.RECALC },
+      { planId, date: new Date(appToday().getTime() - 30 * DAY_MS), vdot: 48.6, source: VdotSource.RECALC },
     ],
   });
   const entries = await prisma.vdotHistory.findMany({ where: { planId }, orderBy: { date: "asc" } });
