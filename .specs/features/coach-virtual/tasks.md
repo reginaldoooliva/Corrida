@@ -834,11 +834,11 @@ same task.
 **Requirement**: LOG-01, LOG-02
 
 **Done when**:
-- [ ] A valid submission saves the log and marks the session `done`; e2e asserts it
-- [ ] An out-of-bounds field (distance/duration/pace/RPE) is rejected with that field named; e2e
+- [x] A valid submission saves the log and marks the session `done`; e2e asserts it
+- [x] An out-of-bounds field (distance/duration/pace/RPE) is rejected with that field named; e2e
       asserts it
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
-- [ ] Test count: 2 tests pass (no silent deletions)
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] Test count: 2 tests pass (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full
@@ -1411,6 +1411,15 @@ its own commit (`c4f2854`): the suite runs against live Supabase, and the defaul
 tests on latency alone (first login on a cold server, T28's logged-session test). A `next start`
 orphaned by the previous session held port 3000 (Playwright would have reused its stale build);
 the user stopped it.
+
+T31 notes: persistence goes through a new `lib/domain/workout-log.ts` `saveWorkoutLog` (upsert
+on the unique `sessionId`), the module design.md's Log-workout diagram names but tasks.md's
+**Where** omits - keeps the Server Action a thin adapter (AD-001). LOG-02 bounds are the zod
+schema in `app/dashboard/log/[sessionId]/actions.ts` (as design.md places them): each issue's
+message names its field ("Distância/Duração/Pace/RPE inválid..."); the first failing field is
+shown, via the same `?error=` redirect pattern as T26/T30. Duration must be whole minutes (Int
+column). The form is `noValidate`, so the server, not the browser, rejects bad input. The dashboard
+gained a "Registrar treino" link on each unlogged session (needed to reach the form from the UI).
 
 Batch 5 (T26-T27) deviations found while implementing against the live app rather than mocked
 unit tests:
