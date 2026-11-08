@@ -1403,8 +1403,8 @@ T32 notes (2026-11-07): touched two files beyond its **Where** - `lib/domain/wor
 every session to the log page ("Editar registro" when logged), the only way to reach edit/delete.
 Gate: unit 75 passed; e2e 22 passed only with `--workers=1` (8.4m). The default parallel run failed
 8 tests: workers in different spec files call `resetPlans` on the same seeded user at once and wipe
-each other's plans. Not a code defect - the suite needs `workers: 1` in `playwright.config.ts`
-(pending, not changed in T32).
+each other's plans. Not a code defect. Fixed right after T32: `playwright.config.ts` sets
+`workers: 1` (user go-ahead 2026-11-07: "Sim, fixar"), so the gate's own command runs serially.
 **Walked:** none
 
 T30 notes (resumed inline): added `recordVdotRetest(planId, result, today)` in

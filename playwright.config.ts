@@ -6,6 +6,9 @@ export default defineConfig({
   // reset, seeding a plan - takes ~20s, and a server's first request is slower still. Playwright's
   // 30s/5s defaults made otherwise-green tests fail on latency alone.
   timeout: 60000,
+  // Every spec file resets and seeds plans for the same single seeded user, and the DB allows one
+  // ACTIVE plan per user: parallel workers wipe each other's plans mid-test. Run them serially.
+  workers: 1,
   expect: { timeout: 10000 },
   webServer: {
     command: "npm run start",
