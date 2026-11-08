@@ -1063,8 +1063,8 @@ width and fix layout issues found.
 **Requirement**: -
 
 **Done when**:
-- [ ] Every screen is usable (no horizontal scroll, no overlapping controls) at a 390px-wide viewport
-- [ ] Existing e2e suite still passes after any layout changes
+- [x] Every screen is usable (no horizontal scroll, no overlapping controls) at a 390px-wide viewport
+- [x] Existing e2e suite still passes after any layout changes
 
 **Tests**: e2e (re-run existing suite)
 **Gate**: full
@@ -1564,6 +1564,26 @@ UTC-midnight Date; all app call sites and the e2e helpers/specs use it, so the s
 the app at any hour. Side effect, intended: `week.endDate < today` now reassesses a week the day
 after its last day, not during it. The T30 note above ("UTC date" for the cookie) now reads as
 the local date.
+
+T41 notes: new `e2e/mobile.spec.ts` opens every screen (login, the four onboarding steps,
+dashboard, log, history, settings) at 390x844 and fails if any element sits past the viewport or
+the page scrolls sideways (`globals.css` clips `overflow-x`, so the element check is what catches
+clipped content); `MOBILE_SHOTS_DIR=<dir>` also saves full-page screenshots for review. Nothing
+overflowed, but the screenshots showed two layout faults, fixed here: (1) `body` is a flex column,
+so every page's `<main>` (max-width + `margin: auto`) shrank to its content - a 200px-wide login
+form, 240px log inputs - fixed by `main { width: 100% }` in `globals.css`; (2) the history charts'
+560-unit viewBox scaled to ~0.55 on a phone, leaving ~6px axis labels - viewBox now 360x200,
+labels 12, left padding 44 so the pace labels clear the plot.
+Logged for T42 (more than a layout tweak): touch targets - native checkboxes/radios (~13px) and the
+log form's "Salvar registro" button (~18px tall, no button style); links are unstyled text
+(`globals.css` sets `color: inherit; text-decoration: none`), indistinguishable from labels; the
+dashboard has no links to /history or /settings; `<html lang="en">` and title "Create Next App";
+plus the earlier nits ("1 semanas", no dashboard link on "Plano criado", raw P2002 text on a double
+submit).
+T41 gate: 79 unit, 37/38 e2e on the first full run - lifecycle's carry-over test timed out
+waiting 15s for "Plano criado" (plan creation on the live dev DB; the page itself had rendered
+correctly); `lifecycle.spec.ts` alone then passed 4/4. Same latency flake class as the cold-start
+auth test, not caused by this change (CSS/SVG only).
 
 ---
 

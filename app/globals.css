@@ -47,3 +47,9 @@ a {
     color-scheme: dark;
   }
 }
+
+/* body is a flex column: without this, each page's <main> (max-width + margin: auto) shrinks to
+   its content instead of filling the phone's width, leaving narrow inputs and buttons (T41). */
+main {
+  width: 100%;
+}

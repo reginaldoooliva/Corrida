@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic";
 
 const main = { maxWidth: 640, margin: "6vh auto", padding: 24 } as const;
 
-const WIDTH = 560;
-const HEIGHT = 220;
-const PAD = 32;
+const WIDTH = 360;
+const HEIGHT = 200;
+const PAD = 44;
 
 function formatDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -43,10 +43,10 @@ function PaceChart({ points }: { points: PacePoint[] }) {
 
   return (
     <svg role="img" aria-label="Pace real vs. planejado" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%">
-      <text x={4} y={PAD} fontSize={11}>
+      <text x={2} y={PAD} fontSize={12}>
         {formatPace(fast)}
       </text>
-      <text x={4} y={HEIGHT - PAD} fontSize={11}>
+      <text x={2} y={HEIGHT - PAD} fontSize={12}>
         {formatPace(slow)}
       </text>
       {series.map((s) => (
@@ -86,10 +86,10 @@ function VdotChart({ points }: { points: VdotPoint[] }) {
   return (
     <svg role="img" aria-label="VDOT ao longo do tempo" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%">
       <line x1={PAD} y1={HEIGHT - PAD} x2={WIDTH - PAD} y2={HEIGHT - PAD} stroke="#999" />
-      <text x={4} y={PAD} fontSize={11}>
+      <text x={2} y={PAD} fontSize={12}>
         {maxV.toFixed(0)}
       </text>
-      <text x={4} y={HEIGHT - PAD} fontSize={11}>
+      <text x={2} y={HEIGHT - PAD} fontSize={12}>
         {minV.toFixed(0)}
       </text>
       <polyline points={coords.map(([cx, cy]) => `${cx},${cy}`).join(" ")} fill="none" stroke="#1565c0" strokeWidth={2} />
