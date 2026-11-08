@@ -880,9 +880,9 @@ task for the edit/delete/already-reassessed paths, completing the full P1-D Inde
 **Requirement**: HIST-01
 
 **Done when**:
-- [ ] The chart renders one point per `VdotHistory` entry for the current plan; e2e asserts it
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
-- [ ] Test count: 1 test passes (no silent deletions)
+- [x] The chart renders one point per `VdotHistory` entry for the current plan; e2e asserts it
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] Test count: 1 test passes (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full
@@ -1405,6 +1405,12 @@ Gate: unit 75 passed; e2e 22 passed only with `--workers=1` (8.4m). The default 
 8 tests: workers in different spec files call `resetPlans` on the same seeded user at once and wipe
 each other's plans. Not a code defect. Fixed right after T32: `playwright.config.ts` sets
 `workers: 1` (user go-ahead 2026-11-07: "Sim, fixar"), so the gate's own command runs serially.
+
+T33 notes (2026-11-07): design.md names no chart library, so the VDOT chart is inline SVG (no new
+dependency): `role="img"` named "VDOT ao longo do tempo", one `<circle>` per `VdotHistory` entry
+with a `<title>` "YYYY-MM-DD: VDOT 47.3". "Current plan" = the user's ACTIVE plan; with none, the
+page says so and links to `/plan/new` (T35 adds archived plans). No link to `/history` exists yet
+on the dashboard - nothing in T33-T39 adds one; flag for T41/T43. Gate: unit 75, e2e 23 passed.
 **Walked:** none
 
 T30 notes (resumed inline): added `recordVdotRetest(planId, result, today)` in
