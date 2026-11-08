@@ -82,6 +82,31 @@ export class ActivePlanExistsError extends Error {
 
 // Spec LIFE-06: at most one active plan per user. The partial unique index on Plan(userId)
 // WHERE status = 'ACTIVE' is the database-level backstop for a concurrent attempt.
+// Spec LIFE-04/05: the VDOT a new plan defaults to - the latest archived plan's carry-over (T21) -
+// and the source it is recorded under if the user keeps it: RACE when it comes from that plan's
+// race result, RECALC when it is the plan's last currentVdot. Null when no plan was archived yet.
+export async function carryOverVdot(userId: string): Promise<{ vdot: number; source: VdotSource } | null> {
+  const previous = await prisma.plan.findFirst({
+    where: { userId, status: PlanStatus.ARCHIVED },
+    orderBy: { createdAt: "desc" },
+    include: { raceResult: true },
+  });
+  if (!previous) return null;
+  const vdot = await initialVdotForNewPlan(previous.id);
+  if (vdot === null) return null;
+  return { vdot, source: previous.raceResult ? VdotSource.RACE : VdotSource.RECALC };
+}
+
+// Spec LIFE-05: the carried-over VDOT is editable before confirming. A value the user changed
+// (beyond the form's one-decimal rounding) is recorded as MANUAL; an unchanged one keeps its source.
+export async function createPlanFromCarryOver(
+  input: Omit<CreatePlanInput, "vdotSource" | "result" | "vdot"> & { vdot: number },
+): ReturnType<typeof createPlan> {
+  const carried = await carryOverVdot(input.userId);
+  const kept = carried !== null && Math.abs(carried.vdot - input.vdot) < 0.05;
+  return createNewPlan({ ...input, vdotSource: kept ? carried.source : VdotSource.MANUAL });
+}
+
 export async function createNewPlan(input: CreatePlanInput): ReturnType<typeof createPlan> {
   const active = await prisma.plan.findFirst({
     where: { userId: input.userId, status: PlanStatus.ACTIVE },

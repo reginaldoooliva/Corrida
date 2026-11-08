@@ -72,3 +72,61 @@ test("submitting a finish time saves the result and hides the prompt", async ({ 
     await prisma.vdotHistory.count({ where: { planId, source: VdotSource.RACE, vdot } }),
   ).toBe(1);
 });
+
+const dateDaysFromNow = (days: number) => new Date(Date.now() + days * DAY_MS).toISOString().slice(0, 10);
+
+async function fillRaceForm(page: import("@playwright/test").Page) {
+  await page.getByLabel(/10km/).check();
+  await page.getByLabel("Data da prova").fill(dateDaysFromNow(70));
+  for (const day of ["Seg", "Qua", "Sáb"]) await page.getByRole("checkbox", { name: day }).check();
+}
+
+test("a new plan defaults its VDOT from the last race result and lets the user edit it before confirming", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  const userId = await getSeededUserId();
+  const { planId: oldPlanId } = await seedActivePlan(userId);
+  await raceWasYesterday(oldPlanId);
+  // 10km in 45:00 (VDOT ~45), well apart from the plan's own ~50, so the default is visibly the race's.
+  await recordRaceResult(oldPlanId, 45 * 60);
+  await prisma.plan.update({ where: { id: oldPlanId }, data: { status: PlanStatus.ARCHIVED } });
+  const { vdotComputed } = await prisma.raceResult.findUniqueOrThrow({ where: { planId: oldPlanId } });
+  expect((await prisma.plan.findUniqueOrThrow({ where: { id: oldPlanId } })).currentVdot).not.toBeCloseTo(
+    vdotComputed,
+    1,
+  );
+
+  // No VDOT step: the race form opens with the race result's VDOT already filled in.
+  await page.goto("/plan/new");
+  await expect(page).toHaveURL(/\/plan\/new$/);
+  const vdotField = page.getByLabel("VDOT inicial");
+  await expect(vdotField).toHaveValue(vdotComputed.toFixed(1));
+
+  // Editable before confirming: the plan starts from the edited value.
+  await vdotField.fill("51.5");
+  await fillRaceForm(page);
+  await page.getByRole("button", { name: "Criar plano" }).click();
+
+  await expect(page.getByRole("heading", { name: "Plano criado" })).toBeVisible({ timeout: 15000 });
+  const plan = await prisma.plan.findFirstOrThrow({ where: { userId, status: PlanStatus.ACTIVE } });
+  expect(plan).toMatchObject({ initialVdot: 51.5, currentVdot: 51.5 });
+  expect(await prisma.vdotHistory.findMany({ where: { planId: plan.id } })).toMatchObject([
+    { vdot: 51.5, source: VdotSource.MANUAL },
+  ]);
+});
+
+test("attempting a second active plan shows the one-active-plan rejection", async ({ page }) => {
+  test.setTimeout(120000);
+  const userId = await getSeededUserId();
+  await seedActivePlan(userId);
+
+  // The manual-entry route (T26/T27) still reaches the race form while a plan is active.
+  await page.goto("/plan/new?distanceKm=5&timeSec=1197&source=MANUAL");
+  await fillRaceForm(page);
+  await page.getByRole("button", { name: "Criar plano" }).click();
+
+  await expect(page.locator("main").getByRole("alert")).toContainText("You already have an active plan");
+  await expect(page.getByRole("heading", { name: "Plano criado" })).toHaveCount(0);
+  expect(await prisma.plan.count({ where: { userId, status: PlanStatus.ACTIVE } })).toBe(1);
+});

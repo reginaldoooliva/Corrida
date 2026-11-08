@@ -28,11 +28,14 @@ export function calculateVdot(distanceKm: number, timeSec: number): number {
 // beyond this ceiling is treated as a typo, not a real result.
 const MAX_PLAUSIBLE_VDOT = 90;
 
+export function isPlausibleVdot(vdot: number): boolean {
+  return Number.isFinite(vdot) && vdot > 0 && vdot <= MAX_PLAUSIBLE_VDOT;
+}
+
 export function isPlausibleResult(distanceKm: number, timeSec: number): boolean {
   if (!Number.isFinite(distanceKm) || !Number.isFinite(timeSec)) return false;
   if (distanceKm <= 0 || timeSec <= 0) return false;
-  const vdot = calculateVdot(distanceKm, timeSec);
-  return vdot > 0 && vdot <= MAX_PLAUSIBLE_VDOT;
+  return isPlausibleVdot(calculateVdot(distanceKm, timeSec));
 }
 
 // Training intensity as a fraction of VDOT (Daniels' zones). Daniels runs long runs at
