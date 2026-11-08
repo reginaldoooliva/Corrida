@@ -968,12 +968,12 @@ active; extend `e2e/lifecycle.spec.ts` in the same task, completing the full P1-
 **Requirement**: LIFE-04, LIFE-05, LIFE-06
 
 **Done when**:
-- [ ] A new plan after an archived plan with a `RaceResult` defaults its VDOT from that result,
+- [x] A new plan after an archived plan with a `RaceResult` defaults its VDOT from that result,
       editable before confirming; e2e asserts it
-- [ ] A new plan after an archived plan with no `RaceResult` defaults to the last `currentVdot`
-- [ ] Attempting a second active plan shows `LIFE-06`'s rejection message; e2e asserts it
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
-- [ ] Test count: 2 tests pass (no silent deletions)
+- [x] A new plan after an archived plan with no `RaceResult` defaults to the last `currentVdot`
+- [x] Attempting a second active plan shows `LIFE-06`'s rejection message; e2e asserts it
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] Test count: 2 tests pass (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full
@@ -1442,7 +1442,22 @@ existing test (it records a one-hour marathon), so the test was left alone and t
 domain helper `isPlausibleRaceTime(raceType, sec)` with its own unit test (unit count 75 -> 76).
 An implausible time redirects with "Informe um tempo final plausível para a distância da prova.".
 Gate: unit 76, e2e 28 passed. Remote `origin` = github.com/reginaldoooliva/Corrida (added
-2026-11-08, nothing pushed).
+2026-11-08); local `master` pushed as `main` on the user's go-ahead ("Sim, push como main").
+
+T37 notes (2026-11-08): **Batch 4 gap closed** - `CreatePlanInput` is now a union: the old
+`{ vdotSource: TEST|MANUAL, result }` or `{ vdotSource, vdot }` (SPEC_DEVIATION in
+plan-generator.ts); a direct VDOT is checked by the new `isPlausibleVdot` (the bound
+`isPlausibleResult` already used, now shared). `plan-lifecycle.ts` gained `carryOverVdot(userId)`
+(latest ARCHIVED plan -> T21's `initialVdotForNewPlan`; source RACE with a result, RECALC without)
+and `createPlanFromCarryOver` (kept value -> that source, edited by >= 0.05 -> MANUAL; goes through
+`createNewPlan`, so LIFE-06 holds). `/plan/new` with no result params and a carry-over renders the
+race form with an editable "VDOT inicial" (one decimal) and a "Prefiro fazer um novo teste" link;
+otherwise it redirects to the VDOT step as before. Touched beyond **Where**: the three domain files.
+The new domain functions are covered by the e2e only (the vitest prisma mock has no
+orderBy/include on `plan.findFirst`). The LIFE-06 message stays T22's English text. Done-when item 2
+(no RaceResult -> currentVdot) is proven by T21's unit test, not a new e2e. Gate: unit 76, e2e 30
+passed. Committed on branch `feat/t37-vdot-carry-over` for a PR into `main` (user asked for a PR;
+`gh` is not installed and the GitHub connector rejected its token, so the PR is opened by hand).
 **Walked:** none
 
 T30 notes (resumed inline): added `recordVdotRetest(planId, result, today)` in
