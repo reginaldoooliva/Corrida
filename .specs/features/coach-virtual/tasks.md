@@ -900,10 +900,10 @@ extend `e2e/history.spec.ts` in the same task.
 **Requirement**: HIST-02
 
 **Done when**:
-- [ ] The pace chart plots actual vs. planned pace per logged session; e2e asserts it
-- [ ] Weekly adherence (`done / planned`) is shown per week; e2e asserts it
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
-- [ ] Test count: 1 test passes (no silent deletions)
+- [x] The pace chart plots actual vs. planned pace per logged session; e2e asserts it
+- [x] Weekly adherence (`done / planned`) is shown per week; e2e asserts it
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] Test count: 1 test passes (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full
@@ -1411,6 +1411,16 @@ dependency): `role="img"` named "VDOT ao longo do tempo", one `<circle>` per `Vd
 with a `<title>` "YYYY-MM-DD: VDOT 47.3". "Current plan" = the user's ACTIVE plan; with none, the
 page says so and links to `/plan/new` (T35 adds archived plans). No link to `/history` exists yet
 on the dashboard - nothing in T33-T39 adds one; flag for T41/T43. Gate: unit 75, e2e 23 passed.
+
+T34 notes (2026-11-07): touched `lib/domain/session-status.ts` beyond its **Where** - the
+adherence count lives there as `weeklyAdherence` (AD-001; reuses `deriveSessionStatus`), covered by
+the e2e only. Spec-precision gap (SPEC_DEVIATION in the page): HIST-02 does not say which weeks
+get an adherence line; only weeks that have started are listed. The pace chart renders only with
+at least one logged session (T35 adds the explicit empty state). Gate: unit 75, e2e 24 passed on
+the second run. The first run failed 1 test unrelated to T34 - `auth.spec.ts` "login succeeds..."
+stayed on /login past the 10s expect timeout on the cold server's first request (it took 11.2s on
+an earlier green run); the spec alone passes 4/4. Flaky, not fixed: candidate for a separate
+`test(e2e)` commit giving that first login the same 15s timeout `helpers.ts` login uses.
 **Walked:** none
 
 T30 notes (resumed inline): added `recordVdotRetest(planId, result, today)` in

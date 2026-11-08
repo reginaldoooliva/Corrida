@@ -16,3 +16,13 @@ export function deriveSessionStatus(
   if (hasLog) return "DONE";
   return utcDayNumber(session.date) < utcDayNumber(today) ? "MISSED" : "PENDING";
 }
+
+// Spec HIST-02: a week's adherence is its done sessions over its planned ones, with "done"
+// decided by the same rule as the dashboard (deriveSessionStatus).
+export function weeklyAdherence(
+  sessions: { date: Date; hasLog: boolean }[],
+  today: Date,
+): { done: number; planned: number } {
+  const done = sessions.filter((s) => deriveSessionStatus(s, s.hasLog, today) === "DONE").length;
+  return { done, planned: sessions.length };
+}
