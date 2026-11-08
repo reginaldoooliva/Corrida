@@ -57,3 +57,9 @@ test("visiting /register and /signup returns 404", async ({ page }) => {
     expect(response?.status()).toBe(404);
   }
 });
+
+test("the root URL leads to the app, not a placeholder page", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/login/);
+  await expect(page.getByRole("heading", { name: "Entrar" })).toBeVisible();
+});

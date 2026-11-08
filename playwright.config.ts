@@ -1,4 +1,20 @@
+import { existsSync } from "node:fs";
+
 import { defineConfig } from "@playwright/test";
+
+// The suite wipes the seeded user's plans (e2e/helpers.ts resetPlans), so it must only ever reach
+// the dev database in `.env`. `next start` runs in production mode and loads these files over
+// `.env`, and so does the helpers' loadEnvConfig - once a production env file sat here, a run
+// reset the production database (2026-11-08). Keep production secrets under a name Next never
+// loads (e.g. `.env.deploy.local`); refuse to run otherwise.
+const overridingEnvFiles = [".env.local", ".env.production", ".env.production.local"].filter((f) =>
+  existsSync(f),
+);
+if (overridingEnvFiles.length > 0) {
+  throw new Error(
+    `Refusing to run e2e: ${overridingEnvFiles.join(", ")} would point the app away from the dev database in .env.`,
+  );
+}
 
 export default defineConfig({
   testDir: "./e2e",
