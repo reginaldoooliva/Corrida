@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { getSeededUserId } from "@/lib/domain/auth";
 import type { Weekday } from "@/lib/domain/plan-generator";
-import { ActivePlanExistsError, createNewPlan } from "@/lib/domain/plan-lifecycle";
+import { ActivePlanExistsError, createNewPlan, createPlanFromCarryOver } from "@/lib/domain/plan-lifecycle";
 
 export interface EstablishedVdot {
   distanceKm: number;
@@ -63,6 +63,43 @@ export async function createPlanAction(
   } catch (error) {
     if (error instanceof ActivePlanExistsError) backToForm(vdotResult, error.message);
     backToForm(vdotResult, error instanceof Error ? error.message : "Não foi possível criar o plano.");
+  }
+
+  redirect(`/plan/new?created=${createdPlanId}`);
+}
+
+const carryOverSchema = inputSchema.extend({ vdot: z.coerce.number() });
+
+// Spec LIFE-04/05: a plan started after an archived one, from the carried-over VDOT the form
+// pre-filled (or the value the user edited it to). createPlanFromCarryOver picks the source.
+export async function createCarryOverPlanAction(formData: FormData): Promise<void> {
+  const parsed = carryOverSchema.safeParse({
+    raceType: formData.get("raceType"),
+    raceDate: formData.get("raceDate"),
+    days: formData.getAll("days"),
+    vdot: formData.get("vdot"),
+  });
+
+  if (!parsed.success) {
+    redirect(`/plan/new?error=${encodeURIComponent("Preencha o VDOT, o tipo de prova, a data e os dias de treino.")}`);
+  }
+
+  const userId = await getSeededUserId();
+
+  let createdPlanId: string;
+  try {
+    const { plan } = await createPlanFromCarryOver({
+      userId,
+      raceType: parsed.data.raceType,
+      raceDate: parsed.data.raceDate,
+      daysPerWeek: parsed.data.days as Weekday[],
+      vdot: parsed.data.vdot,
+      today: new Date(),
+    });
+    createdPlanId = plan.id;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Não foi possível criar o plano.";
+    redirect(`/plan/new?error=${encodeURIComponent(message)}`);
   }
 
   redirect(`/plan/new?created=${createdPlanId}`);

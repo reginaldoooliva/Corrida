@@ -1,10 +1,13 @@
 import { RaceType } from "@prisma/client";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { getSeededUserId } from "@/lib/domain/auth";
 import { computePlanWeeks, MINIMUM_WEEKS } from "@/lib/domain/plan-generator";
+import { carryOverVdot } from "@/lib/domain/plan-lifecycle";
 import { prisma } from "@/lib/prisma";
 
-import { createPlanAction, type EstablishedVdot } from "./actions";
+import { createCarryOverPlanAction, createPlanAction, type EstablishedVdot } from "./actions";
 
 const main = { maxWidth: 560, margin: "8vh auto", padding: 24 } as const;
 const field = { display: "grid", gap: 4 } as const;
@@ -40,23 +43,57 @@ export default async function NewPlanPage({ searchParams }: NewPlanPageProps) {
   const timeSec = Number(params.timeSec);
   const source = params.source === "TEST" || params.source === "MANUAL" ? params.source : undefined;
 
-  // PLAN-01..04 need an established VDOT first (VDOT-01..03); send the user to that step.
   if (!source || !Number.isFinite(distanceKm) || !Number.isFinite(timeSec)) {
+    // Spec LIFE-04/05: after an archived plan, the race form opens with its carried-over VDOT,
+    // editable; the VDOT step stays one link away.
+    const carried = await carryOverVdot(await getSeededUserId());
+    if (carried) {
+      return (
+        <RaceForm action={createCarryOverPlanAction} error={params.error}>
+          <label style={field}>
+            VDOT inicial
+            <input
+              name="vdot"
+              type="number"
+              step="0.1"
+              defaultValue={carried.vdot.toFixed(1)}
+              required
+              style={input}
+            />
+          </label>
+          <p>
+            Vindo do seu plano anterior. <Link href="/plan/new/vdot">Prefiro fazer um novo teste</Link>
+          </p>
+        </RaceForm>
+      );
+    }
+    // PLAN-01..04 need an established VDOT first (VDOT-01..03); send the user to that step.
     redirect("/plan/new/vdot");
   }
 
   const vdotResult: EstablishedVdot = { distanceKm, timeSec, source };
-  const action = createPlanAction.bind(null, vdotResult);
+  return <RaceForm action={createPlanAction.bind(null, vdotResult)} error={params.error} />;
+}
 
+function RaceForm({
+  action,
+  error,
+  children,
+}: {
+  action: (formData: FormData) => Promise<void>;
+  error?: string;
+  children?: React.ReactNode;
+}) {
   return (
     <main style={main}>
       <h1>Nova prova</h1>
-      {params.error && (
+      {error && (
         <p role="alert" style={{ color: "#b00020" }}>
-          {params.error}
+          {error}
         </p>
       )}
       <form action={action} style={{ display: "grid", gap: 20, marginTop: 16 }}>
+        {children}
         <fieldset style={field}>
           <legend>Tipo de prova</legend>
           {Object.values(RaceType).map((type) => (

@@ -2,7 +2,7 @@ import { Phase, RaceType, SessionType, VdotSource, type Plan } from "@prisma/cli
 
 import { prisma } from "@/lib/prisma";
 
-import { calculateVdot, isPlausibleResult, paceForVdot } from "./vdot";
+import { calculateVdot, isPlausibleResult, isPlausibleVdot, paceForVdot } from "./vdot";
 
 /** Day of week, 0 = Sunday .. 6 = Saturday (matches `Date#getUTCDay`). */
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -139,31 +139,41 @@ export function generateSessions(
   });
 }
 
-export interface CreatePlanInput {
+// SPEC_DEVIATION: design.md gives createPlan only a test/manual result. Reason: a plan started after
+// an archived one (LIFE-04/05, T37) begins from a carried-over VDOT, not from a run time, so the
+// input also takes a VDOT directly.
+export type CreatePlanInput = {
   userId: string;
   raceType: RaceType;
   raceDate: Date;
   daysPerWeek: Weekday[];
-  /** How the initial VDOT was established (spec VDOT-03). */
-  vdotSource: typeof VdotSource.TEST | typeof VdotSource.MANUAL;
-  result: { distanceKm: number; timeSec: number };
   today: Date;
-}
+} & (
+  | {
+      /** How the initial VDOT was established (spec VDOT-03). */
+      vdotSource: typeof VdotSource.TEST | typeof VdotSource.MANUAL;
+      result: { distanceKm: number; timeSec: number };
+    }
+  | { vdotSource: VdotSource; vdot: number }
+);
 
 export async function createPlan(
   input: CreatePlanInput,
 ): Promise<{ plan: Plan; belowMinimum: boolean }> {
-  const { userId, raceType, raceDate, daysPerWeek, vdotSource, result, today } = input;
+  const { userId, raceType, raceDate, daysPerWeek, vdotSource, today } = input;
 
   if (!validateDaysPerWeek(daysPerWeek)) {
     throw new Error(DAYS_PER_WEEK_ERROR);
   }
-  if (!isPlausibleResult(result.distanceKm, result.timeSec)) {
+  if ("result" in input && !isPlausibleResult(input.result.distanceKm, input.result.timeSec)) {
     throw new Error("The time entered is not plausible for that distance.");
+  }
+  if ("vdot" in input && !isPlausibleVdot(input.vdot)) {
+    throw new Error("The VDOT entered is not plausible.");
   }
 
   const { weeks, belowMinimum } = computePlanWeeks(raceType, raceDate, today);
-  const vdot = calculateVdot(result.distanceKm, result.timeSec);
+  const vdot = "result" in input ? calculateVdot(input.result.distanceKm, input.result.timeSec) : input.vdot;
   const startDay = utcDayNumber(today) * DAY_MS;
 
   // SPEC_DEVIATION: raised from Prisma's 5000ms default interactive-transaction timeout.
