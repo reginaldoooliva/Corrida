@@ -64,6 +64,19 @@ export async function seedActivePlan(
   return { planId: plan.id };
 }
 
+// Backdates a plan's latest VdotHistory entry without touching the plan's own age, so VDOT-04/05
+// tests ("VDOT is stale") don't also have to make the whole plan (and its reassessment chain) old.
+export async function backdateLatestVdot(planId: string, daysAgo: number): Promise<void> {
+  const entry = await prisma.vdotHistory.findFirstOrThrow({
+    where: { planId },
+    orderBy: { date: "desc" },
+  });
+  await prisma.vdotHistory.update({
+    where: { id: entry.id },
+    data: { date: new Date(Date.now() - daysAgo * 86400000) },
+  });
+}
+
 export async function logWorkout(
   sessionId: string,
   overrides: Partial<{ actualPaceSecPerKm: number; actualDistanceKm: number; actualDurationMin: number; rpe: number }> = {},

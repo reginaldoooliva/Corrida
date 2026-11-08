@@ -1,15 +1,23 @@
 import { SessionType } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// In-memory stand-in for the weeks/sessions/logs tables. A transaction works on a staged copy that
-// replaces `db` only when the callback resolves.
+// In-memory stand-in for the plans/weeks/sessions/logs/vdotHistory tables. A transaction works on
+// a staged copy that replaces `db` only when the callback resolves.
 type Row = Record<string, unknown>;
-type Store = { weeks: Row[]; sessions: Row[]; logs: Row[] };
+type Store = { plans: Row[]; weeks: Row[]; sessions: Row[]; logs: Row[]; vdotHistory: Row[] };
 
 const { db, modelsFor } = vi.hoisted(() => {
-  const db: Store = { weeks: [], sessions: [], logs: [] };
+  const db: Store = { plans: [], weeks: [], sessions: [], logs: [], vdotHistory: [] };
+  let nextId = 0;
   function modelsFor(store: Store) {
     return {
+      plan: {
+        update: async ({ where, data }: { where: { id: string }; data: Row }) => {
+          const plan = store.plans.find((p) => p.id === where.id)!;
+          Object.assign(plan, data);
+          return structuredClone(plan);
+        },
+      },
       week: {
         findMany: async ({ where }: { where: { planId: string } }) =>
           structuredClone(
@@ -31,6 +39,18 @@ const { db, modelsFor } = vi.hoisted(() => {
           const session = store.sessions.find((s) => s.id === where.id)!;
           Object.assign(session, data);
           return structuredClone(session);
+        },
+        updateMany: async ({ where, data }: { where: { id: { in: string[] } }; data: Row }) => {
+          const matched = store.sessions.filter((s) => where.id.in.includes(s.id as string));
+          for (const session of matched) Object.assign(session, data);
+          return { count: matched.length };
+        },
+      },
+      vdotHistory: {
+        create: async ({ data }: { data: Row }) => {
+          const row = { id: `vh-${++nextId}`, ...data };
+          store.vdotHistory.push(row);
+          return structuredClone(row);
         },
       },
     };
@@ -55,6 +75,7 @@ import {
   isRetestDue,
   paceForVdot,
   recomputeFuturePaces,
+  recordVdotRetest,
 } from "./vdot";
 
 // Reference values from Jack Daniels' published VDOT table (Daniels' Running Formula).
@@ -198,6 +219,69 @@ describe("vdot", () => {
       await recomputeFuturePaces("p1", NEW_VDOT, TODAY);
 
       expect(untouched.map(session)).toEqual(before);
+    });
+  });
+
+  describe("recordVdotRetest", () => {
+    // Same two-week plan as recomputeFuturePaces, plus the Plan row recordVdotRetest updates.
+    const TODAY = new Date("2026-11-11T12:00:00Z");
+    const OLD_VDOT = 45;
+
+    function seed() {
+      db.plans = [{ id: "p1", currentVdot: OLD_VDOT }];
+      db.weeks = [];
+      db.sessions = [];
+      db.logs = [];
+      db.vdotHistory = [];
+      const weeks = [
+        { id: "w1", planId: "p1", weekNumber: 1, start: "2026-11-01", end: "2026-11-07" },
+        { id: "w2", planId: "p1", weekNumber: 2, start: "2026-11-08", end: "2026-11-14" },
+      ];
+      for (const w of weeks) {
+        db.weeks.push({
+          id: w.id,
+          planId: w.planId,
+          weekNumber: w.weekNumber,
+          startDate: new Date(`${w.start}T00:00:00Z`),
+          endDate: new Date(`${w.end}T00:00:00Z`),
+        });
+        db.sessions.push({
+          id: `${w.id}-s0`,
+          weekId: w.id,
+          type: SessionType.EASY,
+          date: new Date(`${w.start}T00:00:00Z`),
+          plannedPaceSecPerKm: paceForVdot(OLD_VDOT, SessionType.EASY).secPerKm,
+        });
+      }
+    }
+    beforeEach(seed);
+
+    it("recordVdotRetest adds a RECALC VdotHistory entry, updates currentVdot and recomputes future paces", async () => {
+      const result = { distanceKm: 5, timeSec: 19 * 60 + 57 }; // VDOT ~50
+      const expectedVdot = calculateVdot(result.distanceKm, result.timeSec);
+
+      const entry = await recordVdotRetest("p1", result, TODAY);
+
+      expect(entry).toMatchObject({ planId: "p1", date: TODAY, vdot: expectedVdot, source: "RECALC" });
+      expect(db.vdotHistory).toEqual([entry]);
+      expect(db.plans[0].currentVdot).toBe(expectedVdot);
+      // w1 ended before TODAY: untouched. w2 (current week) is not-yet-done: recomputed.
+      expect(db.sessions.find((s) => s.id === "w1-s0")!.plannedPaceSecPerKm).toBe(
+        paceForVdot(OLD_VDOT, SessionType.EASY).secPerKm,
+      );
+      expect(db.sessions.find((s) => s.id === "w2-s0")!.plannedPaceSecPerKm).toBe(
+        paceForVdot(expectedVdot, SessionType.EASY).secPerKm,
+      );
+    });
+
+    it("recordVdotRetest rejects a physically implausible result without writing anything", async () => {
+      const before = structuredClone(db);
+
+      await expect(recordVdotRetest("p1", { distanceKm: 5, timeSec: 60 }, TODAY)).rejects.toThrow(
+        /not plausible/,
+      );
+
+      expect(db).toEqual(before);
     });
   });
 });

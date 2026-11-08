@@ -810,12 +810,12 @@ T26's result form and a dismiss-for-the-day control; write the matching e2e test
 **Requirement**: VDOT-04, VDOT-06, VDOT-07
 
 **Done when**:
-- [ ] The banner shows when the latest VDOT is ≥4 weeks old; e2e asserts it
-- [ ] Submitting a result adds a `VdotHistory` (`source = recalc`), updates `currentVdot`, and future
+- [x] The banner shows when the latest VDOT is ≥4 weeks old; e2e asserts it
+- [x] Submitting a result adds a `VdotHistory` (`source = recalc`), updates `currentVdot`, and future
       sessions' planned paces change; e2e asserts it
-- [ ] Dismissing hides it for the day and it reappears on the next visit; e2e asserts it
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
-- [ ] Test count: 3 tests pass (no silent deletions)
+- [x] Dismissing hides it for the day and it reappears on the next visit; e2e asserts it
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] Test count: 3 tests pass (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full
@@ -1394,8 +1394,23 @@ complete. Batch 2 (Phase 2: T8-T13) dispatched 2026-11-07, pre-HEAD 6279836 - re
 complete (Build gate deferred per above). Batch 3 (Phase 3: T14-T18) dispatched 2026-11-07,
 pre-HEAD 2df1b70 - returned, all complete, Build gate green. Batch 4 (Phase 4+5: T19-T25)
 dispatched 2026-11-07, pre-HEAD 13baa4e - returned, all complete, Build gate green. Batch 5
-(Phase 6+7+8: T26-T32) dispatched 2026-11-07, pre-HEAD a59955a
+(Phase 6+7+8: T26-T32) dispatched 2026-11-07, pre-HEAD a59955a - worker did not return (session
+ended after T29 commit `71ba3d8`, T30 left uncommitted in the tree); orchestrator resumed T30-T32
+inline in a new session 2026-11-07, with the user's go-ahead.
 **Walked:** none
+
+T30 notes (resumed inline): added `recordVdotRetest(planId, result, today)` in
+`lib/domain/vdot.ts` - the domain function T24's Handoff note said T30 still needed (RECALC
+`VdotHistory` row + `currentVdot` update + `recomputeFuturePaces`), with the `isPlausibleResult`
+guard. `recomputeFuturePaces` now issues one `updateMany` per session type instead of one `update`
+per session: per-row updates took ~19s on the live DB for a full plan (user-visible wait after
+submitting a retest). Its transaction timeout was raised to 20s too (same reason as `createPlan`).
+Dismiss-for-the-day is a `retest_dismissed` cookie holding the UTC date; the page hides the banner
+while it matches today's UTC date. `playwright.config.ts` raised to 60s per test / 10s per expect in
+its own commit (`c4f2854`): the suite runs against live Supabase, and the defaults failed green
+tests on latency alone (first login on a cold server, T28's logged-session test). A `next start`
+orphaned by the previous session held port 3000 (Playwright would have reused its stale build);
+the user stopped it.
 
 Batch 5 (T26-T27) deviations found while implementing against the live app rather than mocked
 unit tests:

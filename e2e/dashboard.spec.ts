@@ -1,7 +1,14 @@
 import { Decision, RaceType, VdotSource } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
-import { getSeededUserId, login, logWorkout, resetPlans, seedActivePlan } from "./helpers";
+import {
+  backdateLatestVdot,
+  getSeededUserId,
+  login,
+  logWorkout,
+  resetPlans,
+  seedActivePlan,
+} from "./helpers";
 import { createNewPlan } from "../lib/domain/plan-lifecycle";
 import { prisma } from "../lib/prisma";
 
@@ -112,4 +119,72 @@ test("after the last taper week ends before the race date, the dashboard shows t
 
   await expect(page.getByRole("heading", { name: "Semana 1" })).toBeVisible();
   await expect(page.getByRole("listitem")).toHaveCount(sessions.length);
+});
+
+test("shows a retest prompt when the VDOT is 4 or more weeks old", async ({ page }) => {
+  const userId = await getSeededUserId();
+  const { planId } = await seedActivePlan(userId);
+  await backdateLatestVdot(planId, 30);
+
+  await page.goto("/dashboard");
+
+  await expect(page.getByRole("region", { name: "Aviso de reteste de VDOT" })).toBeVisible();
+});
+
+test("submitting a retest result updates the VDOT and future sessions' planned paces", async ({ page }) => {
+  test.setTimeout(60000);
+  const userId = await getSeededUserId();
+  const { planId } = await seedActivePlan(userId);
+  await backdateLatestVdot(planId, 30);
+  const week = await prisma.week.findFirstOrThrow({ where: { planId }, orderBy: { weekNumber: "asc" } });
+  const pendingBefore = await prisma.session.findFirstOrThrow({
+    where: { weekId: week.id, workoutLog: null },
+  });
+
+  await page.goto("/dashboard");
+  const prompt = page.getByRole("region", { name: "Aviso de reteste de VDOT" });
+  await expect(prompt).toBeVisible();
+  // A much faster 5km (16:30, VDOT ~60) than the plan's original (19:57, VDOT ~50).
+  await prompt.getByLabel("Distância (km)").fill("5");
+  await prompt.getByLabel("Minutos").fill("16");
+  await prompt.getByLabel("Segundos").fill("30");
+  await prompt.getByRole("button", { name: "Enviar resultado" }).click();
+
+  await expect(page.getByRole("region", { name: "Aviso de reteste de VDOT" })).toHaveCount(0, {
+    timeout: 15000,
+  });
+  const updatedPlan = await prisma.plan.findUniqueOrThrow({ where: { id: planId } });
+  expect(updatedPlan.currentVdot).toBeGreaterThan(55);
+  const pendingAfter = await prisma.session.findUniqueOrThrow({ where: { id: pendingBefore.id } });
+  expect(pendingAfter.plannedPaceSecPerKm).toBeLessThan(pendingBefore.plannedPaceSecPerKm);
+  const vdotHistory = await prisma.vdotHistory.findMany({ where: { planId }, orderBy: { date: "desc" } });
+  expect(vdotHistory[0]).toMatchObject({ source: VdotSource.RECALC });
+});
+
+test("dismissing the retest prompt hides it today and shows it again on the next visit", async ({ page }) => {
+  test.setTimeout(60000);
+  const userId = await getSeededUserId();
+  const { planId } = await seedActivePlan(userId);
+  await backdateLatestVdot(planId, 30);
+
+  await page.goto("/dashboard");
+  const prompt = page.getByRole("region", { name: "Aviso de reteste de VDOT" });
+  await expect(prompt).toBeVisible();
+  await prompt.getByRole("button", { name: "Agora não" }).click();
+
+  // The post-action re-render queries the live DB several times (~4-5s here): wait longer than 5s.
+  await expect(page.getByRole("region", { name: "Aviso de reteste de VDOT" })).toHaveCount(0, {
+    timeout: 15000,
+  });
+  // A later visit on the same day still keeps it hidden.
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: /Semana/ })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Aviso de reteste de VDOT" })).toHaveCount(0);
+
+  // Simulate the next calendar day: the dismiss cookie only hides the prompt for the day it names.
+  await page.context().addCookies([
+    { name: "retest_dismissed", value: "2000-01-01", domain: "localhost", path: "/" },
+  ]);
+  await page.goto("/dashboard");
+  await expect(page.getByRole("region", { name: "Aviso de reteste de VDOT" })).toBeVisible();
 });

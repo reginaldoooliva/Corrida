@@ -1,8 +1,12 @@
 import { PlanStatus, SessionType } from "@prisma/client";
+import { cookies } from "next/headers";
 import Link from "next/link";
 
+import { RETEST_DISMISS_COOKIE } from "./constants";
+import { RetestPrompt } from "./retest-prompt";
 import { getSeededUserId } from "@/lib/domain/auth";
 import { deriveSessionStatus, type SessionStatus } from "@/lib/domain/session-status";
+import { isRetestDue } from "@/lib/domain/vdot";
 import { reassessIfDue } from "@/lib/domain/weekly-adjustment";
 import { prisma } from "@/lib/prisma";
 
@@ -35,7 +39,12 @@ function formatDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-export default async function DashboardPage() {
+interface DashboardPageProps {
+  searchParams: Promise<{ retestError?: string }>;
+}
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  const { retestError } = await searchParams;
   const userId = await getSeededUserId();
   const plan = await prisma.plan.findFirst({
     where: { userId, status: PlanStatus.ACTIVE },
@@ -82,8 +91,18 @@ export default async function DashboardPage() {
       })
     : [];
 
+  // Spec VDOT-04/05/07: show the retest banner once the latest VDOT is 4+ weeks old, unless it
+  // was dismissed earlier today (the cookie's date no longer matches tomorrow, so it reappears).
+  const lastVdot = await prisma.vdotHistory.findFirst({
+    where: { planId: plan.id },
+    orderBy: { date: "desc" },
+  });
+  const dismissedToday = (await cookies()).get(RETEST_DISMISS_COOKIE)?.value === formatDate(today);
+  const showRetestPrompt = Boolean(lastVdot && isRetestDue(lastVdot.date, today) && !dismissedToday);
+
   return (
     <main style={main}>
+      {showRetestPrompt && <RetestPrompt planId={plan.id} error={retestError} />}
       <h1>Semana {currentWeek?.weekNumber ?? "-"}</h1>
       <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: 12 }}>
         {sessions.map((session) => {

@@ -1,4 +1,4 @@
-import { SessionType } from "@prisma/client";
+import { SessionType, VdotSource, type VdotHistory } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 
@@ -78,6 +78,10 @@ export async function recomputeFuturePaces(
   newVdot: number,
   today: Date,
 ): Promise<void> {
+  // SPEC_DEVIATION: raised from Prisma's 5000ms default interactive-transaction timeout, same
+  // issue and fix as createPlan's transaction (plan-generator.ts) - a plan with many weeks left
+  // can have dozens of not-yet-done sessions to update one round trip at a time against the live
+  // pooled Supabase connection, found by T30's e2e test hitting the real DB.
   await prisma.$transaction(async (tx) => {
     const weeks = await tx.week.findMany({
       where: { planId },
@@ -86,11 +90,40 @@ export async function recomputeFuturePaces(
     const pending = weeks
       .filter((w) => utcDayNumber(w.endDate) >= utcDayNumber(today))
       .flatMap((w) => w.sessions.filter((s) => !s.workoutLog));
-    for (const s of pending) {
-      await tx.session.update({
-        where: { id: s.id },
-        data: { plannedPaceSecPerKm: paceForVdot(newVdot, s.type).secPerKm },
+    // Every session of one type gets the same pace, so one updateMany per type replaces one
+    // round trip per session (~19s for a full plan against the pooled Supabase connection).
+    for (const type of new Set(pending.map((s) => s.type))) {
+      await tx.session.updateMany({
+        where: { id: { in: pending.filter((s) => s.type === type).map((s) => s.id) } },
+        data: { plannedPaceSecPerKm: paceForVdot(newVdot, type).secPerKm },
       });
     }
+  }, { timeout: 20000 });
+}
+
+// Spec VDOT-06 (the other half of the gap `recomputeFuturePaces` leaves open, per tasks.md's
+// Handoff): submitting a retest result (a) adds a `VdotHistory` entry with `source = RECALC`,
+// (b) updates `Plan.currentVdot`, and (c) recomputes every not-yet-done session's planned pace
+// from `today` on via `recomputeFuturePaces`. Mirrors `recordRaceResult`'s shape in
+// plan-lifecycle.ts, with the same `isPlausibleResult` guard `createPlan` uses.
+export async function recordVdotRetest(
+  planId: string,
+  result: { distanceKm: number; timeSec: number },
+  today: Date,
+): Promise<VdotHistory> {
+  if (!isPlausibleResult(result.distanceKm, result.timeSec)) {
+    throw new Error("The time entered is not plausible for that distance.");
+  }
+  const vdot = calculateVdot(result.distanceKm, result.timeSec);
+
+  const entry = await prisma.$transaction(async (tx) => {
+    const created = await tx.vdotHistory.create({
+      data: { planId, date: today, vdot, source: VdotSource.RECALC },
+    });
+    await tx.plan.update({ where: { id: planId }, data: { currentVdot: vdot } });
+    return created;
   });
+
+  await recomputeFuturePaces(planId, vdot, today);
+  return entry;
 }
