@@ -3,8 +3,10 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 
 import { RETEST_DISMISS_COOKIE } from "./constants";
+import { RaceResultPrompt } from "./race-result-prompt";
 import { RetestPrompt } from "./retest-prompt";
 import { getSeededUserId } from "@/lib/domain/auth";
+import { archiveIfPast } from "@/lib/domain/plan-lifecycle";
 import { deriveSessionStatus, type SessionStatus } from "@/lib/domain/session-status";
 import { isRetestDue } from "@/lib/domain/vdot";
 import { reassessIfDue } from "@/lib/domain/weekly-adjustment";
@@ -40,20 +42,34 @@ function formatDate(date: Date): string {
 }
 
 interface DashboardPageProps {
-  searchParams: Promise<{ retestError?: string }>;
+  searchParams: Promise<{ retestError?: string; raceResultError?: string }>;
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-  const { retestError } = await searchParams;
+  const { retestError, raceResultError } = await searchParams;
   const userId = await getSeededUserId();
+  const today = new Date();
+
+  // Spec LIFE-01: once its race date has passed, the active plan is archived before anything renders.
+  const active = await prisma.plan.findFirst({ where: { userId, status: PlanStatus.ACTIVE } });
+  if (active) await archiveIfPast(active.id, today);
+
   const plan = await prisma.plan.findFirst({
     where: { userId, status: PlanStatus.ACTIVE },
     include: { weeks: { orderBy: { weekNumber: "asc" } } },
   });
 
   if (!plan) {
+    // Spec LIFE-02: the latest plan, archived without a RaceResult, asks for the race's finish time.
+    const latest = await prisma.plan.findFirst({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      include: { raceResult: true },
+    });
+    const askForResult = latest?.status === PlanStatus.ARCHIVED && !latest.raceResult;
     return (
       <main style={main}>
+        {askForResult && <RaceResultPrompt planId={latest.id} error={raceResultError} />}
         <h1>Nenhum plano ativo</h1>
         <p>
           <Link href="/plan/new">Criar um novo plano</Link>
@@ -61,8 +77,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       </main>
     );
   }
-
-  const today = new Date();
 
   // Spec DASH-04: settle every ended, not-yet-reassessed week (oldest first, so paces cascade
   // correctly even if more than one week went by unvisited) before rendering the week that follows.

@@ -179,6 +179,7 @@ import {
   archiveIfPast,
   createNewPlan,
   initialVdotForNewPlan,
+  isPlausibleRaceTime,
   recalculateFromCurrentWeek,
   recordRaceResult,
 } from "./plan-lifecycle";
@@ -280,6 +281,14 @@ describe("plan-lifecycle", () => {
         db.raceResults.map((r) => r.vdotComputed),
       );
       expect(db.vdotHistory.every((h) => h.source === VdotSource.RACE)).toBe(true);
+    });
+
+    it("isPlausibleRaceTime judges a finish time against the race's own distance", () => {
+      // 41:21 is a real 10km (VDOT 50) but no human runs a marathon in it; 0s is no time at all.
+      expect(isPlausibleRaceTime(RaceType.TEN_K, 41 * 60 + 21)).toBe(true);
+      expect(isPlausibleRaceTime(RaceType.MARATHON, 41 * 60 + 21)).toBe(false);
+      expect(isPlausibleRaceTime(RaceType.MARATHON, 3 * 3600 + 10 * 60)).toBe(true);
+      expect(isPlausibleRaceTime(RaceType.TEN_K, 0)).toBe(false);
     });
   });
 

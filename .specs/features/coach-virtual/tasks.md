@@ -945,11 +945,11 @@ the same task.
 **Requirement**: LIFE-02
 
 **Done when**:
-- [ ] The prompt shows exactly when the active plan is `archived` and has no `RaceResult`; e2e
+- [x] The prompt shows exactly when the active plan is `archived` and has no `RaceResult`; e2e
       asserts it
-- [ ] Submitting a finish time saves the result and hides the prompt; e2e asserts it
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
-- [ ] Test count: 2 tests pass (no silent deletions)
+- [x] Submitting a finish time saves the result and hides the prompt; e2e asserts it
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] Test count: 2 tests pass (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full
@@ -1430,6 +1430,19 @@ one (so `/history` still works between plans). The race result reads
 pace chart only - the VDOT chart always has the plan's initial entry, and adherence lines stay.
 With no plan at all the page says "Nenhum plano ainda." (was "Nenhum plano ativo."). Gate: unit 75,
 e2e 26 passed.
+
+T36 notes (2026-11-08): **gap closed** - nothing called T19's `archiveIfPast`, so no plan ever
+archived and LIFE-02's prompt could never show. The dashboard now archives the active plan on load
+(before the reassessment loop), then, with no active plan, shows `RaceResultPrompt` when the latest
+plan is ARCHIVED without a `RaceResult`. "the active plan is `archived`" in T36's Done-when is read
+as "the latest plan". Touched beyond **Where**: `app/dashboard/page.tsx`, `app/dashboard/actions.ts`
+(`submitRaceResult`: hours/minutes/seconds, zod), `lib/domain/plan-lifecycle.ts` and its test. The
+Batch 4 note asked T36 to check plausibility first: a guard inside `recordRaceResult` broke T20's
+existing test (it records a one-hour marathon), so the test was left alone and the guard is a new
+domain helper `isPlausibleRaceTime(raceType, sec)` with its own unit test (unit count 75 -> 76).
+An implausible time redirects with "Informe um tempo final plausível para a distância da prova.".
+Gate: unit 76, e2e 28 passed. Remote `origin` = github.com/reginaldoooliva/Corrida (added
+2026-11-08, nothing pushed).
 **Walked:** none
 
 T30 notes (resumed inline): added `recordVdotRetest(planId, result, today)` in

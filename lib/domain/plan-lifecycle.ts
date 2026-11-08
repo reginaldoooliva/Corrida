@@ -12,7 +12,7 @@ import {
   type CreatePlanInput,
   type Weekday,
 } from "./plan-generator";
-import { calculateVdot } from "./vdot";
+import { calculateVdot, isPlausibleResult } from "./vdot";
 import { reassessIfDue } from "./weekly-adjustment";
 
 const RACE_DISTANCE_KM: Record<RaceType, number> = {
@@ -34,6 +34,12 @@ export async function archiveIfPast(planId: string, today: Date): Promise<void> 
   if (plan.status !== PlanStatus.ACTIVE) return;
   if (utcDayNumber(plan.raceDate) >= utcDayNumber(today)) return;
   await prisma.plan.update({ where: { id: planId }, data: { status: PlanStatus.ARCHIVED } });
+}
+
+// The plausibility guard createPlan and recordVdotRetest apply, for a plan's own race distance.
+// recordRaceResult does not run it itself (T20); the race-result prompt (T36) checks first.
+export function isPlausibleRaceTime(raceType: RaceType, finishTimeSec: number): boolean {
+  return isPlausibleResult(RACE_DISTANCE_KM[raceType], finishTimeSec);
 }
 
 // Spec LIFE-03: the finish time becomes a RaceResult and a race-sourced VdotHistory entry.
