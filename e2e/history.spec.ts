@@ -2,6 +2,7 @@ import { PlanStatus, VdotSource } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
 import { getSeededUserId, login, logWorkout, resetPlans, seedActivePlan } from "./helpers";
+import { recordRaceResult } from "../lib/domain/plan-lifecycle";
 import { prisma } from "../lib/prisma";
 
 test.beforeEach(async ({ page }) => {
@@ -85,4 +86,58 @@ test("shows actual-vs-planned pace and weekly adherence", async ({ page }) => {
   await expect(adherence.getByRole("listitem").filter({ hasText: "Semana 2:" })).toHaveText(
     `Semana 2: 1 de ${week2.sessions.length} sessões feitas`,
   );
+});
+
+async function firstSession(planId: string) {
+  const week = await prisma.week.findFirstOrThrow({ where: { planId }, orderBy: { weekNumber: "asc" } });
+  return prisma.session.findFirstOrThrow({ where: { weekId: week.id }, orderBy: { date: "asc" } });
+}
+
+test("selecting an archived plan shows its own charts and race result", async ({ page }) => {
+  test.setTimeout(120000);
+  const userId = await getSeededUserId();
+
+  // A finished plan: one logged session, a race result (40:00), then archived.
+  const { planId: oldPlanId } = await seedActivePlan(userId, { daysAgo: 10 });
+  const oldSession = await firstSession(oldPlanId);
+  await logWorkout(oldSession.id, { actualPaceSecPerKm: 333 });
+  await recordRaceResult(oldPlanId, 40 * 60);
+  await prisma.plan.update({ where: { id: oldPlanId }, data: { status: PlanStatus.ARCHIVED } });
+  const oldVdots = await prisma.vdotHistory.findMany({ where: { planId: oldPlanId }, orderBy: { date: "asc" } });
+  const raceResult = await prisma.raceResult.findUniqueOrThrow({ where: { planId: oldPlanId } });
+
+  // The current plan, with a log of its own.
+  const { planId } = await seedActivePlan(userId, { daysAgo: 10 });
+  await logWorkout((await firstSession(planId)).id, { actualPaceSecPerKm: 301 });
+
+  await page.goto("/history");
+  const paceChart = page.getByRole("img", { name: "Pace real vs. planejado" });
+  await expect(paceChart).toContainText("real: 5:01/km");
+  await expect(page.getByText("Resultado da prova")).toHaveCount(0);
+
+  await page.getByRole("navigation", { name: "Planos" }).getByRole("link", { name: /arquivado/ }).click();
+
+  await expect(page).toHaveURL(new RegExp(`plan=${oldPlanId}`));
+  // That plan's own pace data, not the current plan's.
+  await expect(paceChart.locator("circle > title")).toHaveText([
+    `${oldSession.date.toISOString().slice(0, 10)} planejado: ${pace(oldSession.plannedPaceSecPerKm)}`,
+    `${oldSession.date.toISOString().slice(0, 10)} real: 5:33/km`,
+  ]);
+  // That plan's own VDOT entries, the race's included.
+  await expect(page.getByRole("img", { name: "VDOT ao longo do tempo" }).locator("circle > title")).toHaveText(
+    oldVdots.map((e) => pointLabel(e.date, e.vdot)),
+  );
+  await expect(page.getByText("Resultado da prova")).toHaveText(
+    `Resultado da prova: 40:00 (VDOT ${raceResult.vdotComputed.toFixed(1)})`,
+  );
+});
+
+test("a plan with no logged sessions shows an explicit empty state", async ({ page }) => {
+  const userId = await getSeededUserId();
+  await seedActivePlan(userId);
+
+  await page.goto("/history");
+
+  await expect(page.getByText("Nenhum treino registrado neste plano ainda.")).toBeVisible();
+  await expect(page.getByRole("img", { name: "Pace real vs. planejado" })).toHaveCount(0);
 });

@@ -922,11 +922,11 @@ completing the full P1-G Independent Test.
 **Requirement**: HIST-03, HIST-04
 
 **Done when**:
-- [ ] Selecting an archived plan shows that plan's own charts and race result; e2e asserts it
-- [ ] A plan with zero logged sessions shows an explicit empty state, not an empty chart; e2e
+- [x] Selecting an archived plan shows that plan's own charts and race result; e2e asserts it
+- [x] A plan with zero logged sessions shows an explicit empty state, not an empty chart; e2e
       asserts it
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
-- [ ] Test count: 2 tests pass (no silent deletions)
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] Test count: 2 tests pass (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full
@@ -1421,6 +1421,15 @@ the second run. The first run failed 1 test unrelated to T34 - `auth.spec.ts` "l
 stayed on /login past the 10s expect timeout on the cold server's first request (it took 11.2s on
 an earlier green run); the spec alone passes 4/4. Flaky, not fixed: candidate for a separate
 `test(e2e)` commit giving that first login the same 15s timeout `helpers.ts` login uses.
+
+T35 notes (2026-11-08): the plan selector is a `<nav aria-label="Planos">` of links to
+`/history?plan=<id>` (server-rendered, no client JS), listing every plan newest first, labelled
+"(atual)"/"(arquivado)". With no `plan` param the active plan shows; with no active plan, the latest
+one (so `/history` still works between plans). The race result reads
+"Resultado da prova: 40:00 (VDOT 49.1)" (h:mm:ss past an hour). HIST-04's empty state replaces the
+pace chart only - the VDOT chart always has the plan's initial entry, and adherence lines stay.
+With no plan at all the page says "Nenhum plano ainda." (was "Nenhum plano ativo."). Gate: unit 75,
+e2e 26 passed.
 **Walked:** none
 
 T30 notes (resumed inline): added `recordVdotRetest(planId, result, today)` in

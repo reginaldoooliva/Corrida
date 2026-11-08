@@ -1,4 +1,4 @@
-import { PlanStatus } from "@prisma/client";
+import { PlanStatus, RaceType } from "@prisma/client";
 import Link from "next/link";
 
 import { getSeededUserId } from "@/lib/domain/auth";
@@ -101,11 +101,40 @@ function VdotChart({ points }: { points: VdotPoint[] }) {
   );
 }
 
-export default async function HistoryPage() {
+const RACE_LABEL: Record<RaceType, string> = {
+  [RaceType.FIVE_K]: "5km",
+  [RaceType.TEN_K]: "10km",
+  [RaceType.HALF]: "21km",
+  [RaceType.MARATHON]: "42km",
+};
+
+function formatFinishTime(totalSec: number): string {
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = String(totalSec % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
+}
+
+interface HistoryPageProps {
+  searchParams: Promise<{ plan?: string }>;
+}
+
+export default async function HistoryPage({ searchParams }: HistoryPageProps) {
+  const { plan: selectedId } = await searchParams;
   const userId = await getSeededUserId();
+  // Spec HIST-03: every plan can be picked; with none picked, the active plan is shown (or, with
+  // no active plan, the latest one).
+  const plans = await prisma.plan.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, status: true, raceType: true, raceDate: true },
+  });
+  const selected =
+    plans.find((p) => p.id === selectedId) ?? plans.find((p) => p.status === PlanStatus.ACTIVE) ?? plans[0];
   const plan = await prisma.plan.findFirst({
-    where: { userId, status: PlanStatus.ACTIVE },
+    where: { id: selected?.id ?? "", userId },
     include: {
+      raceResult: true,
       vdotHistory: { orderBy: { date: "asc" } },
       weeks: {
         orderBy: { weekNumber: "asc" },
@@ -118,7 +147,7 @@ export default async function HistoryPage() {
     return (
       <main style={main}>
         <h1>Histórico</h1>
-        <p>Nenhum plano ativo.</p>
+        <p>Nenhum plano ainda.</p>
         <p>
           <Link href="/plan/new">Criar um novo plano</Link>
         </p>
@@ -139,10 +168,29 @@ export default async function HistoryPage() {
   return (
     <main style={main}>
       <h1>Histórico</h1>
+      <nav aria-label="Planos">
+        <ul>
+          {plans.map((p) => (
+            <li key={p.id}>
+              <Link href={`/history?plan=${p.id}`} aria-current={p.id === plan.id ? "page" : undefined}>
+                {RACE_LABEL[p.raceType]} - {formatDate(p.raceDate)} (
+                {p.status === PlanStatus.ACTIVE ? "atual" : "arquivado"})
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      {plan.raceResult && (
+        <p>
+          Resultado da prova: {formatFinishTime(plan.raceResult.finishTimeSec)} (VDOT{" "}
+          {plan.raceResult.vdotComputed.toFixed(1)})
+        </p>
+      )}
       <h2>VDOT ao longo do tempo</h2>
       <VdotChart points={plan.vdotHistory} />
       <h2>Pace real vs. planejado</h2>
-      {pacePoints.length > 0 && <PaceChart points={pacePoints} />}
+      {/* Spec HIST-04: an explicit empty state instead of an empty chart. */}
+      {pacePoints.length > 0 ? <PaceChart points={pacePoints} /> : <p>Nenhum treino registrado neste plano ainda.</p>}
       <h2>Aderência semanal</h2>
       <ul aria-label="Aderência semanal">
         {startedWeeks.map((w) => {
