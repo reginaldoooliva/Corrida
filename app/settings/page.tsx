@@ -4,6 +4,8 @@ import Link from "next/link";
 import { getSeededUserId } from "@/lib/domain/auth";
 import { prisma } from "@/lib/prisma";
 
+import { updatePlanSettings } from "./actions";
+
 // Reads the active plan on every request (SET-01/03); never a build-time snapshot.
 export const dynamic = "force-dynamic";
 
@@ -18,7 +20,14 @@ const RACE_LABEL: Record<RaceType, string> = {
 
 const WEEKDAY_LABEL = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-export default async function SettingsPage() {
+const field = { display: "grid", gap: 4 } as const;
+
+interface SettingsPageProps {
+  searchParams: Promise<{ error?: string }>;
+}
+
+export default async function SettingsPage({ searchParams }: SettingsPageProps) {
+  const { error } = await searchParams;
   const userId = await getSeededUserId();
   const plan = await prisma.plan.findFirst({ where: { userId, status: PlanStatus.ACTIVE } });
 
@@ -53,6 +62,39 @@ export default async function SettingsPage() {
           <dd style={{ margin: 0 }}>{plan.currentVdot.toFixed(1)}</dd>
         </dl>
       </section>
+
+      {/* Spec SET-02: change the race date or training days; the plan is recalculated from the
+          current week on (EDIT-01..03). */}
+      <h2>Editar plano</h2>
+      {error && (
+        <p role="alert" style={{ color: "#b00020" }}>
+          {error}
+        </p>
+      )}
+      <form action={updatePlanSettings} aria-label="Editar plano" style={{ display: "grid", gap: 16 }}>
+        <label style={field}>
+          Nova data da prova
+          <input
+            name="raceDate"
+            type="date"
+            required
+            defaultValue={plan.raceDate.toISOString().slice(0, 10)}
+            style={{ padding: "8px 10px", fontSize: 16 }}
+          />
+        </label>
+        <fieldset style={field}>
+          <legend>Dias de treino (3 a 6 por semana)</legend>
+          {WEEKDAY_LABEL.map((label, day) => (
+            <label key={day} style={{ display: "block" }}>
+              <input type="checkbox" name="days" value={day} defaultChecked={plan.daysPerWeek.includes(day)} />{" "}
+              {label}
+            </label>
+          ))}
+        </fieldset>
+        <button type="submit" style={{ padding: "10px 12px", fontSize: 16 }}>
+          Salvar alterações
+        </button>
+      </form>
       <p>
         <Link href="/dashboard">Voltar ao dashboard</Link>
       </p>

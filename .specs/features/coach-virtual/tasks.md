@@ -1015,12 +1015,12 @@ completing the full P1-I and P1-J Independent Tests.
 **Requirement**: SET-02, EDIT-02
 
 **Done when**:
-- [ ] Changing days from settings triggers the same recalculation as `EDIT-01`/`EDIT-03`; e2e
+- [x] Changing days from settings triggers the same recalculation as `EDIT-01`/`EDIT-03`; e2e
       asserts it, including that already-logged weeks are preserved
-- [ ] An invalid race date or day count is rejected with the plan-creation validation message; e2e
+- [x] An invalid race date or day count is rejected with the plan-creation validation message; e2e
       asserts it
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
-- [ ] Test count: 2 tests pass (no silent deletions)
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] Test count: 2 tests pass (no silent deletions)
 
 **Tests**: e2e
 **Gate**: full
@@ -1466,6 +1466,17 @@ T38 notes (2026-11-08): `/settings` shows the ACTIVE plan in a `<dl>` inside
 labels in week order, "Seg, Qua, Sáb") and VDOT atual (`currentVdot`, one decimal). No active plan:
 "Nenhum plano ativo." and a "Criar um novo plano" link to `/plan/new`. No link to `/settings` exists
 yet on the dashboard (same as `/history`; flag for T41/T43). Gate: unit 76, e2e 32 passed.
+
+T39 notes (2026-11-08): `/settings` adds a form (`aria-label="Editar plano"`: "Nova data da prova",
+weekday checkboxes, "Salvar alterações") posting to `updatePlanSettings`, which finds the ACTIVE
+plan (LIFE-01) and calls T23's `recalculateFromCurrentWeek(plan.id, { raceDate, days }, now)`;
+domain errors come back as `?error=` and show verbatim, so EDIT-02's messages are exactly
+`DAYS_PER_WEEK_ERROR` / `RACE_DATE_ERROR` (English, as at creation). **Bug found and fixed:**
+`recalculateFromCurrentWeek`'s transaction ran on Prisma's 5s default and always died with P2028
+against the live DB (5.1s+ for ~10 weeks) - T23's unit tests use the mocked prisma and never saw
+it. Raised to 20s like `createPlan` (SPEC_DEVIATION in plan-lifecycle.ts). Touched beyond
+**Where**: `lib/domain/plan-lifecycle.ts`. Phase 11 Build gate: build, typecheck and lint green.
+Gate: unit 76, e2e 34 passed.
 **Walked:** none
 
 T30 notes (resumed inline): added `recordVdotRetest(planId, result, today)` in

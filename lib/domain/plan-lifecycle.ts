@@ -191,5 +191,8 @@ export async function recalculateFromCurrentWeek(
     }
 
     await tx.plan.update({ where: { id: planId }, data: { raceDate, daysPerWeek: days } });
-  });
+    // SPEC_DEVIATION: raised from Prisma's 5000ms default interactive-transaction timeout, as in
+    // createPlan. Reason: rebuilding ~10 weeks one round trip at a time against the live pooled
+    // Supabase connection took 5.1s+ (P2028 "Transaction already closed"), found by T39's e2e.
+  }, { timeout: 20000 });
 }
