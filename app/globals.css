@@ -37,9 +37,39 @@ body {
   margin: 0;
 }
 
+/* T42: links read as links (they were unstyled text, indistinguishable from labels). */
 a {
-  color: inherit;
-  text-decoration: none;
+  color: #1565c0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  a {
+    color: #64b5f6;
+  }
+}
+
+/* T42: touch targets - every button is at least 44px tall, native checkboxes/radios are 22px
+   and their labels span a 44px row, so a thumb hits them on a phone. */
+button {
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 16px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: 22px;
+  height: 22px;
+}
+
+label:has(> input[type="checkbox"]),
+label:has(> input[type="radio"]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
 }
 
 @media (prefers-color-scheme: dark) {

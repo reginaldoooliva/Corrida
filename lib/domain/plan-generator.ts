@@ -36,7 +36,7 @@ export function computePlanWeeks(
 }
 
 // Shared with plan editing, which must reject with the same message (spec EDIT-02).
-export const DAYS_PER_WEEK_ERROR = "Choose between 3 and 6 training days per week.";
+export const DAYS_PER_WEEK_ERROR = "Escolha entre 3 e 6 dias de treino por semana.";
 
 export function validateDaysPerWeek(days: Weekday[]): boolean {
   return days.length >= 3 && days.length <= 6;
@@ -166,10 +166,10 @@ export async function createPlan(
     throw new Error(DAYS_PER_WEEK_ERROR);
   }
   if ("result" in input && !isPlausibleResult(input.result.distanceKm, input.result.timeSec)) {
-    throw new Error("The time entered is not plausible for that distance.");
+    throw new Error("O tempo informado não é plausível para essa distância.");
   }
   if ("vdot" in input && !isPlausibleVdot(input.vdot)) {
-    throw new Error("The VDOT entered is not plausible.");
+    throw new Error("O VDOT informado não é plausível.");
   }
 
   const { weeks, belowMinimum } = computePlanWeeks(raceType, raceDate, today);

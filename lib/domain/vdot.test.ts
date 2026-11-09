@@ -278,7 +278,7 @@ describe("vdot", () => {
       const before = structuredClone(db);
 
       await expect(recordVdotRetest("p1", { distanceKm: 5, timeSec: 60 }, TODAY)).rejects.toThrow(
-        /not plausible/,
+        /não é plausível/,
       );
 
       expect(db).toEqual(before);

@@ -75,7 +75,7 @@ export async function initialVdotForNewPlan(previousPlanId?: string): Promise<nu
 
 export class ActivePlanExistsError extends Error {
   constructor() {
-    super("You already have an active plan. It must end before a new one can start.");
+    super("Você já tem um plano ativo. Ele precisa terminar antes de começar outro.");
     this.name = "ActivePlanExistsError";
   }
 }
@@ -112,10 +112,17 @@ export async function createNewPlan(input: CreatePlanInput): ReturnType<typeof c
     where: { userId: input.userId, status: PlanStatus.ACTIVE },
   });
   if (active) throw new ActivePlanExistsError();
-  return createPlan(input);
+  try {
+    return await createPlan(input);
+  } catch (error) {
+    // Two submits racing past the check above: the partial unique index rejects the second
+    // (P2002). It means the same thing as the check, so the user gets the same message (T42).
+    if ((error as { code?: unknown })?.code === "P2002") throw new ActivePlanExistsError();
+    throw error;
+  }
 }
 
-export const RACE_DATE_ERROR = "The race date must fall after the current training week.";
+export const RACE_DATE_ERROR = "A data da prova precisa ser depois da semana de treino atual.";
 
 // Spec EDIT-01..03: rebuild the plan from the week containing `today` onwards with the plan's
 // currentVdot. Weeks before it are not touched. WorkoutLogs are never deleted: a logged session in

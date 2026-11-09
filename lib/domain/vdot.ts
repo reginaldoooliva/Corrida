@@ -115,7 +115,7 @@ export async function recordVdotRetest(
   today: Date,
 ): Promise<VdotHistory> {
   if (!isPlausibleResult(result.distanceKm, result.timeSec)) {
-    throw new Error("The time entered is not plausible for that distance.");
+    throw new Error("O tempo informado não é plausível para essa distância.");
   }
   const vdot = calculateVdot(result.distanceKm, result.timeSec);
 

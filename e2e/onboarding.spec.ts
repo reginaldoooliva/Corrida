@@ -70,9 +70,13 @@ test("a 10km plan ~10 weeks out from a manual 5km time shows ~10 weeks with the 
   await expect(page.getByRole("heading", { name: "Plano criado" })).toBeVisible({ timeout: 15000 });
   const weekItems = page.getByRole("listitem");
   await expect(weekItems).toHaveCount(10);
-  await expect(weekItems.filter({ hasText: "TAPER" })).toHaveCount(1);
-  await expect(weekItems.filter({ hasText: "BASE" })).toHaveCount(4);
+  await expect(weekItems.filter({ hasText: "Polimento" })).toHaveCount(1);
+  await expect(weekItems.filter({ hasText: "Base" })).toHaveCount(4);
   await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Ir para o painel" }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByRole("heading", { name: "Semana 1" })).toBeVisible();
 });
 
 test("a plan shorter than the recommended minimum still generates, with a visible warning", async ({
@@ -109,7 +113,7 @@ test("selecting fewer than 3 or more than 6 days is rejected with the 3-6 range 
   await page.getByRole("checkbox", { name: "Seg" }).check();
   await page.getByRole("checkbox", { name: "Qua" }).check();
   await page.getByRole("button", { name: "Criar plano" }).click();
-  await expect(page.locator("main").getByRole("alert")).toHaveText(/3 and 6/, { timeout: 15000 });
+  await expect(page.locator("main").getByRole("alert")).toHaveText(/3 e 6/, { timeout: 15000 });
 
   // More than 6: all 7 weekdays checked.
   await page.getByLabel(/10km/).check();
@@ -118,5 +122,5 @@ test("selecting fewer than 3 or more than 6 days is rejected with the 3-6 range 
     await page.getByRole("checkbox", { name: day }).check();
   }
   await page.getByRole("button", { name: "Criar plano" }).click();
-  await expect(page.locator("main").getByRole("alert")).toHaveText(/3 and 6/, { timeout: 15000 });
+  await expect(page.locator("main").getByRole("alert")).toHaveText(/3 e 6/, { timeout: 15000 });
 });

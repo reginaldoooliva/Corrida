@@ -183,6 +183,7 @@ import {
   recalculateFromCurrentWeek,
   recordRaceResult,
 } from "./plan-lifecycle";
+import { prisma } from "@/lib/prisma";
 import { calculateVdot, paceForVdot } from "./vdot";
 import { reassessIfDue } from "./weekly-adjustment";
 
@@ -331,9 +332,20 @@ describe("plan-lifecycle", () => {
       const attempt = createNewPlan(input);
 
       await expect(attempt).rejects.toBeInstanceOf(ActivePlanExistsError);
-      await expect(attempt).rejects.toThrow(/already have an active plan/);
+      await expect(attempt).rejects.toThrow(/já tem um plano ativo/);
       expect(db).toEqual(before);
       expect(db.plans).toEqual([existing]);
+    });
+
+    it("createNewPlan reports a concurrent second plan (unique index, P2002) as an active plan conflict", async () => {
+      vi.spyOn(prisma, "$transaction").mockRejectedValueOnce(
+        Object.assign(new Error("Unique constraint failed on the fields: (`userId`)"), { code: "P2002" }),
+      );
+
+      const attempt = createNewPlan(input);
+
+      await expect(attempt).rejects.toBeInstanceOf(ActivePlanExistsError);
+      await expect(attempt).rejects.toThrow(/já tem um plano ativo/);
     });
 
     it("createNewPlan creates the plan when no plan is active", async () => {
@@ -483,7 +495,7 @@ describe("plan-lifecycle", () => {
       // Race date before the current week: nothing would be left to train for.
       await expect(
         recalculateFromCurrentWeek(planId, { raceDate: new Date("2026-11-06T00:00:00Z") }, EDIT_DAY),
-      ).rejects.toThrow(/race date/i);
+      ).rejects.toThrow(/data da prova/i);
 
       expect(db).toEqual(before);
     });

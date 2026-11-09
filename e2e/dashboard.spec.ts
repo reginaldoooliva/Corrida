@@ -189,3 +189,16 @@ test("dismissing the retest prompt hides it today and shows it again on the next
   await page.goto("/dashboard");
   await expect(page.getByRole("region", { name: "Aviso de reteste de VDOT" })).toBeVisible();
 });
+
+test("the dashboard links to history and settings", async ({ page }) => {
+  await seedActivePlan(await getSeededUserId());
+
+  await page.goto("/dashboard");
+  const nav = page.getByRole("navigation", { name: "Seções" });
+  await nav.getByRole("link", { name: "Histórico" }).click();
+  await expect(page.getByRole("heading", { name: "Histórico" })).toBeVisible();
+
+  await page.goto("/dashboard");
+  await nav.getByRole("link", { name: "Configurações" }).click();
+  await expect(page.getByRole("heading", { name: "Configurações" })).toBeVisible();
+});

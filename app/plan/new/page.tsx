@@ -1,4 +1,4 @@
-import { RaceType } from "@prisma/client";
+import { Phase, RaceType } from "@prisma/client";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -21,6 +21,17 @@ const RACE_LABEL: Record<RaceType, string> = {
 };
 
 const WEEKDAY_LABEL = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+const PHASE_LABEL: Record<Phase, string> = {
+  [Phase.BASE]: "Base",
+  [Phase.BUILD]: "Construção",
+  [Phase.PEAK]: "Pico",
+  [Phase.TAPER]: "Polimento",
+};
+
+function weeks(n: number): string {
+  return `${n} ${n === 1 ? "semana" : "semanas"}`;
+}
 
 interface NewPlanPageProps {
   searchParams: Promise<{
@@ -97,7 +108,7 @@ function RaceForm({
         <fieldset style={field}>
           <legend>Tipo de prova</legend>
           {Object.values(RaceType).map((type) => (
-            <label key={type} style={{ display: "block" }}>
+            <label key={type}>
               <input type="radio" name="raceType" value={type} required /> {RACE_LABEL[type]}
             </label>
           ))}
@@ -111,7 +122,7 @@ function RaceForm({
         <fieldset style={field}>
           <legend>Dias de treino (3 a 6 por semana)</legend>
           {WEEKDAY_LABEL.map((label, day) => (
-            <label key={day} style={{ display: "block" }}>
+            <label key={day}>
               <input type="checkbox" name="days" value={day} /> {label}
             </label>
           ))}
@@ -141,21 +152,24 @@ async function PlanSummary({ planId }: { planId: string }) {
     <main style={main}>
       <h1>Plano criado</h1>
       <p>
-        Prova de {RACE_LABEL[plan.raceType]} em {plan.weeks.length} semanas.
+        Prova de {RACE_LABEL[plan.raceType]} em {weeks(plan.weeks.length)}.
       </p>
       {belowMinimum && (
         <p role="alert">
-          Esse plano tem {totalWeeks} semanas, abaixo do mínimo recomendado de {minimum} semanas
-          para uma prova de {RACE_LABEL[plan.raceType]} (faltam {minimum - totalWeeks} semanas).
+          Esse plano tem {weeks(totalWeeks)}, abaixo do mínimo recomendado de {weeks(minimum)} para
+          uma prova de {RACE_LABEL[plan.raceType]} (faltam {weeks(minimum - totalWeeks)}).
         </p>
       )}
       <ol>
         {plan.weeks.map((week) => (
           <li key={week.id}>
-            Semana {week.weekNumber} — {week.phase}
+            Semana {week.weekNumber} — {PHASE_LABEL[week.phase]}
           </li>
         ))}
       </ol>
+      <p>
+        <Link href="/dashboard">Ir para o painel</Link>
+      </p>
     </main>
   );
 }

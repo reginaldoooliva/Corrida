@@ -127,7 +127,7 @@ test("attempting a second active plan shows the one-active-plan rejection", asyn
   await fillRaceForm(page);
   await page.getByRole("button", { name: "Criar plano" }).click();
 
-  await expect(page.locator("main").getByRole("alert")).toContainText("You already have an active plan");
+  await expect(page.locator("main").getByRole("alert")).toContainText("Você já tem um plano ativo");
   await expect(page.getByRole("heading", { name: "Plano criado" })).toHaveCount(0);
   expect(await prisma.plan.count({ where: { userId, status: PlanStatus.ACTIVE } })).toBe(1);
 });

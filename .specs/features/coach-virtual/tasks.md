@@ -1082,8 +1082,8 @@ touch-target too small, a modal that doesn't fit the viewport).
 **Requirement**: -
 
 **Done when**:
-- [ ] Every issue logged in T41 is resolved or explicitly deferred with the user's sign-off
-- [ ] Full gate passes
+- [x] Every issue logged in T41 is resolved or explicitly deferred with the user's sign-off
+- [x] Full gate passes
 
 **Tests**: e2e (re-run existing suite)
 **Gate**: full
@@ -1584,6 +1584,24 @@ T41 gate: 79 unit, 37/38 e2e on the first full run - lifecycle's carry-over test
 waiting 15s for "Plano criado" (plan creation on the live dev DB; the page itself had rendered
 correctly); `lifecycle.spec.ts` alone then passed 4/4. Same latency flake class as the cold-start
 auth test, not caused by this change (CSS/SVG only).
+
+T42 notes: every issue logged in T41 resolved, none deferred.
+- Touch targets (`globals.css`): buttons min 44px tall; checkboxes/radios 22px, their labels a
+  44px flex row (the inline `display: block` on those labels was dropped so the rule applies);
+  dashboard links get a 44px tap area. `e2e/mobile.spec.ts` now also fails on any button or
+  choice row under 44px on every screen.
+- Links: blue + underlined (lighter blue in dark mode) instead of `color: inherit`.
+- Navigation: dashboard `<nav aria-label="Seções">` with Histórico / Configurações (no list
+  element - dashboard tests count `listitem`s as sessions); "Plano criado" links "Ir para o
+  painel". Both covered by new e2e assertions.
+- `<html lang="pt-BR">`, title "Corrida".
+- "Plano criado": singular/plural weeks ("1 semana"), phase names in Portuguese (Base,
+  Construção, Pico, Polimento) instead of the raw enum; onboarding e2e updated to match.
+- User-facing domain messages translated to pt-BR (LIFE-06 active-plan conflict, race date, days
+  per week, implausible time/VDOT); the tests that matched the English text were updated.
+- Double submit: `createNewPlan` maps the partial unique index's P2002 to
+  `ActivePlanExistsError`, so the racing second submit shows the same Portuguese message instead
+  of Prisma's raw text (new unit test, 80 total).
 
 ---
 

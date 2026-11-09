@@ -18,6 +18,8 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const main = { maxWidth: 640, margin: "6vh auto", padding: 24 } as const;
+// T42: a 44px-tall tap area for the dashboard's links on a phone.
+const tapLink = { display: "inline-block", padding: "12px 0" } as const;
 
 const TYPE_LABEL: Record<SessionType, string> = {
   [SessionType.EASY]: "Fácil",
@@ -119,6 +121,14 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     <main style={main}>
       {showRetestPrompt && <RetestPrompt planId={plan.id} error={retestError} />}
       <h1>Semana {currentWeek?.weekNumber ?? "-"}</h1>
+      <nav aria-label="Seções" style={{ display: "flex", gap: 20, margin: "4px 0 12px" }}>
+        <Link href="/history" style={tapLink}>
+          Histórico
+        </Link>
+        <Link href="/settings" style={tapLink}>
+          Configurações
+        </Link>
+      </nav>
       <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: 12 }}>
         {sessions.map((session) => {
           const status = deriveSessionStatus(session, Boolean(session.workoutLog), today);
@@ -139,7 +149,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 <span>Pace real: {formatPace(session.workoutLog.actualPaceSecPerKm)}</span>
               )}
               <span>{STATUS_LABEL[status]}</span>
-              <Link href={`/dashboard/log/${session.id}`}>
+              <Link href={`/dashboard/log/${session.id}`} style={tapLink}>
                 {session.workoutLog ? "Editar registro" : "Registrar treino"}
               </Link>
             </li>

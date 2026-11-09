@@ -85,7 +85,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         <fieldset style={field}>
           <legend>Dias de treino (3 a 6 por semana)</legend>
           {WEEKDAY_LABEL.map((label, day) => (
-            <label key={day} style={{ display: "block" }}>
+            <label key={day}>
               <input type="checkbox" name="days" value={day} defaultChecked={plan.daysPerWeek.includes(day)} />{" "}
               {label}
             </label>

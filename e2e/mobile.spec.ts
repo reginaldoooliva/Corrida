@@ -25,6 +25,15 @@ async function expectFitsPhoneWidth(page: Page, name: string) {
   }, PHONE.width);
   expect(overflowing.out, `${name}: elements past the ${PHONE.width}px viewport`).toEqual([]);
   expect(overflowing.scrollWidth, `${name}: page scrolls horizontally`).toBeLessThanOrEqual(PHONE.width);
+
+  // T42: thumb-sized targets - buttons and checkbox/radio rows at least 44px tall.
+  const small = await page.evaluate(() =>
+    Array.from(document.querySelectorAll("button, label:has(> input[type=checkbox]), label:has(> input[type=radio])"))
+      .map((el) => ({ text: (el.textContent ?? "").trim().slice(0, 30), h: el.getBoundingClientRect().height }))
+      .filter((t) => t.h > 0 && t.h < 44)
+      .map((t) => `"${t.text}" ${Math.round(t.h)}px`),
+  );
+  expect(small, `${name}: touch targets under 44px`).toEqual([]);
 }
 
 test("login fits a phone-width viewport", async ({ page }) => {
