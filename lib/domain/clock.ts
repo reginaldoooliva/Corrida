@@ -15,7 +15,18 @@ export function todayInTimeZone(now: Date, timeZone: string = DEFAULT_TIME_ZONE)
   return new Date(`${ymd}T00:00:00Z`);
 }
 
+// The current instant. APP_NOW (any Date-parsable string) fakes it for a local walk-through that
+// has to cross weeks (T43: advance 4 weeks, reach race day) without editing the database. It is
+// ignored on Vercel (VERCEL is set there), so production always runs on the real clock.
+export function appNow(env: { APP_NOW?: string; VERCEL?: string } = process.env): Date {
+  if (env.APP_NOW && !env.VERCEL) {
+    const fake = new Date(env.APP_NOW);
+    if (!Number.isNaN(fake.getTime())) return fake;
+  }
+  return new Date();
+}
+
 // The app's "today": the local calendar day in APP_TIME_ZONE (default America/Sao_Paulo).
-export function appToday(now: Date = new Date()): Date {
+export function appToday(now: Date = appNow()): Date {
   return todayInTimeZone(now, process.env.APP_TIME_ZONE || DEFAULT_TIME_ZONE);
 }

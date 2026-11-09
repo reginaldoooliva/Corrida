@@ -1603,6 +1603,26 @@ T42 notes: every issue logged in T41 resolved, none deferred.
   `ActivePlanExistsError`, so the racing second submit shows the same Portuguese message instead
   of Prisma's raw text (new unit test, 80 total).
 
+T43 notes (local walk): success criteria 2 and 3 need weeks to pass, and the app ran on the real
+clock, so a walk "without touching the database" could not cross weeks. With the user's OK, added
+`appNow()` in `lib/domain/clock.ts`: `APP_NOW` fakes the current instant for a local server and is
+ignored when `VERCEL` is set, so production always uses the real clock (unit-tested both ways).
+`scripts/uat-walk.mjs` drives the real UI only, at 390px, restarting `next start` with APP_NOW
+moving forward; it reads the DB once, only to report week 1's decision. SPEC_DEVIATION: tasks.md
+expected no new code in T43 - the seam and the script are committed on their own (`test: ...`);
+without APP_NOW the app behaves exactly as before. Local result, 12/12 checks:
+- C1: 10km plan from 5km 19:57 manual: 10 weeks (Base x4, Construção x3, Pico x2, Polimento),
+  ~20s through the UI.
+- C2: week 1 logged with RPE 9 and pace 10% slower -> decision REDUCE (-20%); week 2 shows 24.8km
+  vs week 1's 31.0km.
+- Retest prompt shows on day 28; "Agora não" hides it.
+- C3: still active on race day; archived the day after with the result prompt; 41:30 saved; new
+  plan pre-fills VDOT 49.8 (carry-over); 21km plan created; history lists the archived plan.
+Finding: the first dashboard render after a 6-week jump settles every skipped week before it
+renders and took >30s on the live dev DB (login button stuck on "Entrando..."); the walk allows
+180s there. A user who comes back after weeks away would wait the same - not fixed (perf, not a
+success criterion), flagged for later.
+
 ---
 
 ## Phase Execution Map

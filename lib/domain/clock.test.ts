@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { todayInTimeZone } from "./clock";
+import { appNow, todayInTimeZone } from "./clock";
 import { deriveSessionStatus } from "./session-status";
 
 describe("todayInTimeZone", () => {
@@ -20,5 +20,22 @@ describe("todayInTimeZone", () => {
   it("a session dated today stays pending late in the local evening", () => {
     const today = todayInTimeZone(new Date("2026-11-09T01:30:00Z"), "America/Sao_Paulo");
     expect(deriveSessionStatus({ date: new Date("2026-11-08T00:00:00Z") }, false, today)).toBe("PENDING");
+  });
+});
+
+describe("appNow", () => {
+  it("uses APP_NOW for a local walk-through", () => {
+    expect(appNow({ APP_NOW: "2027-01-18T12:00:00-03:00" }).toISOString()).toBe("2027-01-18T15:00:00.000Z");
+  });
+
+  it("ignores APP_NOW on Vercel, so production keeps the real clock", () => {
+    const before = Date.now();
+    const now = appNow({ APP_NOW: "2027-01-18T12:00:00-03:00", VERCEL: "1" }).getTime();
+    expect(now).toBeGreaterThanOrEqual(before);
+    expect(now).toBeLessThanOrEqual(Date.now());
+  });
+
+  it("ignores an unparsable APP_NOW", () => {
+    expect(Number.isNaN(appNow({ APP_NOW: "amanhã" }).getTime())).toBe(false);
   });
 });
