@@ -1,9 +1,5 @@
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
-
-const BCRYPT_ROUNDS = 10;
-
-const prisma = new PrismaClient();
+import { seedAccount } from "../lib/domain/auth";
+import { prisma } from "../lib/prisma";
 
 async function main() {
   const username = process.env.SEED_USERNAME;
@@ -15,13 +11,7 @@ async function main() {
     );
   }
 
-  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-
-  await prisma.user.upsert({
-    where: { username },
-    update: { passwordHash },
-    create: { username, passwordHash },
-  });
+  await seedAccount(username, password);
 }
 
 main()

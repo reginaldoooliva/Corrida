@@ -6,12 +6,13 @@ vi.mock("@/lib/prisma", () => ({
     user: {
       findUnique: vi.fn(),
       findFirstOrThrow: vi.fn(),
+      upsert: vi.fn(),
     },
   },
 }));
 
 import { prisma } from "@/lib/prisma";
-import { getSeededUserId, verifyCredentials } from "./auth";
+import { getSeededUserId, seedAccount, verifyCredentials } from "./auth";
 
 const USERNAME = "runner";
 const PLAIN_PASSWORD = "correct-horse-battery-staple";
@@ -57,9 +58,17 @@ describe("auth", () => {
     });
   });
 
-  it("stored passwordHash is bcrypt, never the plaintext password", () => {
-    expect(passwordHash).not.toBe(PLAIN_PASSWORD);
-    expect(passwordHash).toMatch(/^\$2[aby]?\$\d{2}\$/);
+  it("stored passwordHash is bcrypt, never the plaintext password", async () => {
+    vi.mocked(prisma.user.upsert).mockReset();
+    await seedAccount(USERNAME, PLAIN_PASSWORD);
+
+    const { create, update } = vi.mocked(prisma.user.upsert).mock.calls[0][0];
+    for (const stored of [create.passwordHash, update.passwordHash] as string[]) {
+      expect(stored).not.toContain(PLAIN_PASSWORD);
+      expect(stored).toMatch(/^\$2[aby]?\$\d{2}\$.{53}$/);
+      expect(await bcrypt.compare(PLAIN_PASSWORD, stored)).toBe(true);
+    }
+    expect(JSON.stringify(vi.mocked(prisma.user.upsert).mock.calls)).not.toContain(PLAIN_PASSWORD);
   });
 
   describe("getSeededUserId", () => {

@@ -2,6 +2,19 @@ import bcrypt from "bcrypt";
 
 import { prisma } from "@/lib/prisma";
 
+const BCRYPT_ROUNDS = 10;
+
+// Spec AUTH-04/05: provisions the single account (prisma/seed.ts), storing only a salted bcrypt
+// hash of the password - never the plaintext.
+export async function seedAccount(username: string, password: string): Promise<void> {
+  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+  await prisma.user.upsert({
+    where: { username },
+    update: { passwordHash },
+    create: { username, passwordHash },
+  });
+}
+
 export async function verifyCredentials(
   username: string,
   password: string,
