@@ -1502,8 +1502,8 @@ link to the dashboard; a concurrent double submit surfaces Prisma's raw P2002 te
 tempo de prova recente" 5km 19:57 -> 10km, race in 70 days, Seg/Qua/Sáb -> "Plano criado" with
 10 weeks Base..Polimento in ~20s; C2 - at day 6 evening, each week-1 session logged via "Registrar
 treino" with RPE 9 and pace 10% slower -> on day 7 the dashboard shows "Semana 2" at 24.8km vs
-31.0km (week 1 decision REDUCE, -20%); day 28 - the retest prompt shows, "Agora não" hides it;
-C3 - race day still active, the day after shows "Aviso de resultado de prova", 41:30 saved, "Criar
+31.0km (week 1 decision REDUCE, -20%); day 28 - the retest prompt shows, "Agora não" hides it; and
+for C3, race day still active, the day after shows "Aviso de resultado de prova", 41:30 saved, "Criar
 um novo plano" pre-fills VDOT 49.8, a 21km plan is created, /history lists the archived one. Time
 advanced only with APP_NOW; no DB writes outside the UI. Deployed URL
 (corrida-kappa.vercel.app, the user's own phone, 2026-11-10): the user walked the given steps
