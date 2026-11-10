@@ -1107,8 +1107,8 @@ submit the result, start a new plan with the carried-over VDOT.
 **Requirement**: - (Success Criteria)
 
 **Done when**:
-- [ ] All three Success Criteria bullets from spec.md are demonstrated, locally and on the deployed URL
-- [ ] No manual database edits were needed at any point in the walk
+- [x] All three Success Criteria bullets from spec.md are demonstrated, locally and on the deployed URL
+- [x] No manual database edits were needed at any point in the walk
 
 **Tests**: e2e (full suite, plus the manual walk)
 **Gate**: full
@@ -1496,7 +1496,19 @@ placeholder in production; now redirects to `/dashboard` (e2e in auth.spec.ts). 
 commit after `bc81915`. Gate: unit 76, e2e 35 passed (dev DB), production untouched.
 UI nits seen in production, for T41/T42: "1 semanas" plural; the "Plano criado" summary has no
 link to the dashboard; a concurrent double submit surfaces Prisma's raw P2002 text.
-**Walked:** none
+**Walked:** T43, 2026-11-08..10. Local (dev DB, `npm run build` then `node scripts/uat-walk.mjs`,
+390x844, login with the seeded account from `.env`): C1 - "Criar um novo plano" -> "Inserir um
+tempo de prova recente" 5km 19:57 -> 10km, race in 70 days, Seg/Qua/Sáb -> "Plano criado" with
+10 weeks Base..Polimento in ~20s; C2 - at day 6 evening, each week-1 session logged via "Registrar
+treino" with RPE 9 and pace 10% slower -> on day 7 the dashboard shows "Semana 2" at 24.8km vs
+31.0km (week 1 decision REDUCE, -20%); day 28 - the retest prompt shows, "Agora não" hides it;
+C3 - race day still active, the day after shows "Aviso de resultado de prova", 41:30 saved, "Criar
+um novo plano" pre-fills VDOT 49.8, a 21km plan is created, /history lists the archived one. Time
+advanced only with APP_NOW; no DB writes outside the UI. Deployed URL
+(corrida-kappa.vercel.app, the user's own phone, 2026-11-10): the user walked the given steps
+(10km plan from a manual 5km time, the weekly plan, logging a session if one was due, Histórico
+and Configurações) and reported "Pronto, deu certo" - no details beyond that. C2/C3 on the deployed URL need real weeks to pass (production ignores
+APP_NOW); they stand on the local walk.
 
 T30 notes (resumed inline): added `recordVdotRetest(planId, result, today)` in
 `lib/domain/vdot.ts` - the domain function T24's Handoff note said T30 still needed (RECALC
