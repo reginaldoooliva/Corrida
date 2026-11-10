@@ -1,0 +1,485 @@
+<!DOCTYPE html><html lang="pt-BR" class="dark"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendário e Detalhes de Provas — Passo Ritmo</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">/** @type {import('tailwindcss').Config} */
+globalThis.tailwind = globalThis.tailwind || {};
+globalThis.tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        'volt': '#FF5722',
+        'pace-teal': '#0D9488',
+        'success': '#16A34A',
+        'warning': '#D97706',
+        'error': '#DC2626',
+        'light-primary': '#D84315',
+        'light-on-primary': '#080808',
+        'light-primary-container': '#FFEDE8',
+        'light-on-primary-container': '#4E1202',
+        'light-secondary': '#0F766E',
+        'light-on-secondary': '#FFFFFF',
+        'light-secondary-container': '#CCFBF1',
+        'light-on-secondary-container': '#115E59',
+        'light-surface': '#F8FAFC',
+        'light-on-surface': '#0F172A',
+        'light-surface-variant': '#EDF2F7',
+        'light-on-surface-variant': '#475569',
+        'light-outline': '#CBD5E1',
+        'light-outline-variant': '#E2E8F0',
+        'dark-primary': '#FF6E40',
+        'dark-on-primary': '#3E1100',
+        'dark-primary-container': '#5F1B00',
+        'dark-on-primary-container': '#FFDBCD',
+        'dark-secondary': '#14B8A6',
+        'dark-on-secondary': '#003731',
+        'dark-secondary-container': '#005047',
+        'dark-on-secondary-container': '#99F6E4',
+        'dark-surface': '#090D14',
+        'dark-on-surface': '#F1F5F9',
+        'dark-surface-variant': '#161F30',
+        'dark-on-surface-variant': '#94A3B8',
+        'dark-outline': '#334155',
+        'dark-outline-variant': '#1E293B',
+      },
+      borderRadius: {
+        'sm': '6px',
+        'DEFAULT': '12px',
+        'md': '14px',
+        'lg': '18px',
+        'xl': '24px',
+        'full': '9999px',
+      },
+      spacing: {
+        'gutter-xs': '4px',
+        'gutter-sm': '8px',
+        'gutter-md': '12px',
+        'gutter-lg': '16px',
+        'gutter-xl': '24px',
+        'gutter-2xl': '32px',
+        'section': '24px',
+        'page-margin': '16px',
+      },
+      fontFamily: {
+        'display': ['"Lexend"', 'sans-serif'],
+        'headline': ['"Lexend"', 'sans-serif'],
+        'body': ['"Instrument Sans"', 'sans-serif'],
+        'label': ['"Instrument Sans"', 'sans-serif'],
+        'metric': ['"M PLUS 1 Code"', 'sans-serif'],
+      },
+      fontSize: {
+        'display-lg': ['40px', { lineHeight: '48px', letterSpacing: '-1px', fontWeight: '800' }],
+        'display-lg-mobile': ['32px', { lineHeight: '38px', letterSpacing: '-0.75px', fontWeight: '800' }],
+        'display-md': ['34px', { lineHeight: '42px', letterSpacing: '-0.5px', fontWeight: '700' }],
+        'display-md-mobile': ['28px', { lineHeight: '34px', letterSpacing: '-0.5px', fontWeight: '700' }],
+        'headline-lg': ['28px', { lineHeight: '36px', letterSpacing: '-0.5px', fontWeight: '700' }],
+        'headline-lg-mobile': ['24px', { lineHeight: '30px', letterSpacing: '-0.25px', fontWeight: '700' }],
+        'headline-md': ['22px', { lineHeight: '28px', letterSpacing: '-0.2px', fontWeight: '600' }],
+        'headline-sm': ['18px', { lineHeight: '24px', letterSpacing: '0px', fontWeight: '600' }],
+        'body-lg': ['16px', { lineHeight: '24px', letterSpacing: '0px', fontWeight: '400' }],
+        'body-md': ['14px', { lineHeight: '20px', letterSpacing: '0px', fontWeight: '400' }],
+        'body-sm': ['12px', { lineHeight: '16px', letterSpacing: '0px', fontWeight: '400' }],
+        'label-lg': ['14px', { lineHeight: '20px', letterSpacing: '0.1px', fontWeight: '600' }],
+        'label-md': ['12px', { lineHeight: '16px', letterSpacing: '0.2px', fontWeight: '600' }],
+        'label-sm': ['10px', { lineHeight: '14px', letterSpacing: '0.4px', fontWeight: '700' }],
+        'metric-display': ['32px', { lineHeight: '36px', letterSpacing: '-0.5px', fontWeight: '700' }],
+        'metric-md': ['20px', { lineHeight: '26px', letterSpacing: '0px', fontWeight: '600' }],
+        'metric-sm': ['14px', { lineHeight: '18px', letterSpacing: '0px', fontWeight: '500' }],
+      },
+      transitionDuration: {
+        'state-change': '120ms',
+        'surface-enter': '220ms',
+        'surface-exit': '150ms',
+      },
+      transitionDelay: {
+        'state-change': '0ms',
+        'surface-enter': '0ms',
+        'surface-exit': '0ms',
+      },
+      transitionTimingFunction: {
+        'state-change': 'ease-out',
+        'surface-enter': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'surface-exit': 'cubic-bezier(0.4, 0, 1, 1)',
+      },
+    },
+  },
+};
+if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
+</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@600;700;800&amp;family=Instrument+Sans:wght@400;500;600;700&amp;family=M+PLUS+1+Code:wght@500;600;700&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+</head>
+<body class="min-h-[884px] bg-dark-surface text-dark-on-surface font-body antialiased flex justify-center selection:bg-volt selection:text-white" data-stitch-vh="min-h-[884px]===min-h-screen">
+
+  <!-- Mobile Device Shell (Android Form Factor) -->
+  <div class="w-full max-w-[390px] min-h-[884px] bg-dark-surface flex flex-col relative pb-24 shadow-2xl border-x border-dark-outline-variant/40" data-stitch-vh="min-h-[884px]===min-h-screen">
+
+    <!-- Top Status Bar & App Header -->
+    <header class="sticky top-0 z-30 bg-dark-surface/95 backdrop-blur-sm border-b border-dark-outline-variant/60 px-4 pt-3 pb-3">
+      <!-- Android System Status Bar Emulation -->
+      <div class="flex items-center justify-between text-xs text-dark-on-surface-variant font-metric pb-2">
+        <span>07:15</span>
+        <div class="flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[15px]">signal_cellular_alt</span>
+          <span class="material-symbols-outlined text-[15px]">wifi</span>
+          <span class="material-symbols-outlined text-[15px]">battery_full</span>
+        </div>
+      </div>
+
+      <!-- Main Navigation Bar -->
+      <div class="flex items-center justify-between mt-1">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-volt flex items-center justify-center text-white shadow-md shadow-volt/20">
+            <span class="material-symbols-outlined text-[22px]">timer</span>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-headline text-headline-sm font-bold tracking-tight text-white">Passo Ritmo</span>
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-volt/20 text-volt font-label">PRO</span>
+            </div>
+            <p class="font-body text-[11px] text-dark-on-surface-variant -mt-0.5">Ciclo Meia do Rio 2026</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <button data-component-id="button-icon" data-component-type="button" data-component-variant="icon" type="button" aria-label="Notificações e alertas de treinos" class="w-9 h-9 rounded-xl bg-dark-surface-variant text-dark-on-surface border border-dark-outline-variant flex items-center justify-center hover:border-volt transition-colors relative">
+            <span class="material-symbols-outlined text-[20px]">notifications</span>
+            <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-volt ring-2 ring-dark-surface"></span>
+          </button>
+          
+          <img src="https://lh3.googleusercontent.com/aida/ALJJyrBQou2KZ8aefwW5VnzYHHlIsD2-2YW63Fu5OGcM1Y4wIfeIEoZkRUjUUsk2MgGsHx_5Zt8pfoaTeftJt4tPXElEsGSBTLlH5AufOX_4yyYwumB2p_P9Mc9QXLcgrpbvrQCaTjQGWNtJuvXbsWPRmLlYdMzML7hRHd0-9oS_8Z6DC4w38kXsMSegSiMoFaSJZHn2P7pNEk-I16guxHn13zEq2OKqvw2YI3G08bt8ExB_Y63M_esZRQ" alt="Foto do perfil de atleta" class="w-9 h-9 rounded-xl object-cover border border-dark-outline">
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Scrollable Content -->
+    <main class="flex-1 px-4 pt-4 flex flex-col gap-5">
+
+      <!-- View Selector Tabs (Horizontal Component) -->
+      <div data-component-id="tabs-horizontal" data-component-type="tabs" data-component-variant="horizontal" class="w-full">
+        <div role="tablist" aria-label="Visualizações de corridas" class="flex p-1 bg-dark-surface-variant rounded-xl border border-dark-outline-variant">
+          <button role="tab" id="tab-proximas" aria-selected="true" aria-controls="panel-proximas" tabindex="0" class="flex-1 py-2 text-center rounded-lg text-xs font-label font-bold bg-dark-surface text-volt shadow-sm border border-volt/20">
+            <span data-design-text-token="label-md">Próximas Provas</span>
+          </button>
+          <button role="tab" id="tab-planilha" aria-selected="false" aria-controls="panel-planilha" tabindex="-1" class="flex-1 py-2 text-center rounded-lg text-xs font-label font-medium text-dark-on-surface-variant hover:text-white transition-colors">
+            <span data-design-text-token="label-md">Planilha Semanal</span>
+          </button>
+          <button role="tab" id="tab-historico" aria-selected="false" aria-controls="panel-historico" tabindex="-1" class="flex-1 py-2 text-center rounded-lg text-xs font-label font-medium text-dark-on-surface-variant hover:text-white transition-colors">
+            <span data-design-text-token="label-md">RP &amp; Medalhas</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Hero Countdown: Prova Alvo Principal (Card Elevated) -->
+      <section aria-labelledby="target-race-heading">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-volt text-[18px]">flag</span>
+            <h2 id="target-race-heading" class="font-headline text-headline-sm text-white">Competição Alvo A</h2>
+          </div>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-label font-semibold bg-volt/15 text-volt border border-volt/30">
+            <span class="w-1.5 h-1.5 rounded-full bg-volt animate-ping"></span>
+            Em 38 dias
+          </span>
+        </div>
+
+        <article data-component-id="card-elevated" data-component-type="card" data-component-variant="elevated" class="relative overflow-hidden rounded-2xl bg-dark-surface-variant border border-dark-outline-variant shadow-lg">
+          <!-- Background Race Visual -->
+          <div class="relative h-32 w-full overflow-hidden">
+            <img src="https://lh3.googleusercontent.com/aida/ALJJyrDc-7gVhUyVN8gbqnvWoMcA4kwDc70gSh0CCtLLIxzISbPn2_2ckMTTAWm-A0gjKKhj4fddDwYHcO0KpXDt9IbG8M0nKcZ2NJ3kPXaFXWonp83yEBQAtitKyC79nzIAJ2joT5rkCWwOHCUzk8a5cgBmORnLhZ499DKr8uUzrPbcXYaWbNK9KyTpIqyjQHasfxFfCxzNzTj_iogzNUpw8xF80ACWOD5C7e-LqLnhcg4A1AwsGHuYNg" alt="Percurso da Meia Maratona do Rio no Aterro" class="w-full h-full object-cover object-center filter brightness-[0.75] contrast-[1.1]">
+            <div class="absolute inset-0 bg-gradient-to-t from-dark-surface-variant via-dark-surface-variant/40 to-transparent"></div>
+            
+            <div class="absolute bottom-2.5 left-3.5 right-3.5 flex items-end justify-between">
+              <div>
+                <span class="px-2 py-0.5 rounded bg-black/60 backdrop-blur-md text-[11px] font-metric font-semibold text-white border border-white/20">
+                  21.097 km • Oficial
+                </span>
+                <h3 class="font-headline text-headline-md text-white mt-1 leading-tight drop-shadow-md">
+                  Meia Maratona do Rio
+                </h3>
+              </div>
+              <span class="material-symbols-outlined text-volt text-[28px] drop-shadow">military_tech</span>
+            </div>
+          </div>
+
+          <!-- Target Metrics Grid -->
+          <div class="p-4 pt-3 flex flex-col gap-3">
+            <div class="flex items-center justify-between text-xs text-dark-on-surface-variant font-body">
+              <span class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-[15px] text-dark-on-surface-variant">calendar_month</span>
+                14 de Julho de 2026 • 06:00
+              </span>
+              <span class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-[15px] text-dark-on-surface-variant">location_on</span>
+                Aterro do Flamengo, RJ
+              </span>
+            </div>
+
+            <!-- Target Pace & Projection Box -->
+            <div class="grid grid-cols-3 gap-2 p-3 bg-dark-surface rounded-xl border border-dark-outline-variant/60">
+              <div class="flex flex-col">
+                <span class="font-label text-label-sm text-dark-on-surface-variant uppercase tracking-wider">Meta Pace</span>
+                <span class="font-metric text-metric-md font-bold text-volt">4:45<span class="text-xs font-normal text-dark-on-surface-variant">/km</span></span>
+                <span class="text-[10px] text-dark-on-surface-variant">RP atual: 4:58</span>
+              </div>
+              <div class="flex flex-col border-x border-dark-outline-variant/40 px-2">
+                <span class="font-label text-label-sm text-dark-on-surface-variant uppercase tracking-wider">Tempo Alvo</span>
+                <span class="font-metric text-metric-md font-bold text-white">1h40m</span>
+                <span class="text-[10px] text-pace-teal font-medium">Sub-1h42</span>
+              </div>
+              <div class="flex flex-col items-end">
+                <span class="font-label text-label-sm text-dark-on-surface-variant uppercase tracking-wider">Treinos Feitos</span>
+                <span class="font-metric text-metric-md font-bold text-pace-teal">24/36</span>
+                <span class="text-[10px] text-dark-on-surface-variant">66% concluído</span>
+              </div>
+            </div>
+
+            <!-- Progress Bar of Training Cycle -->
+            <div>
+              <div class="flex justify-between items-center text-xs mb-1 font-body">
+                <span class="text-dark-on-surface-variant">Semana 8 de 12 • Fase de Polimento Específico</span>
+                <span class="text-volt font-metric font-semibold">Semana 8</span>
+              </div>
+              <div class="w-full h-2 bg-dark-surface rounded-full overflow-hidden border border-dark-outline-variant/40">
+                <div class="h-full bg-gradient-to-r from-pace-teal to-volt w-2/3 rounded-full"></div>
+              </div>
+            </div>
+
+            <!-- Card Actions -->
+            <div class="flex items-center gap-2 pt-1">
+              <button data-component-id="button-primary" data-component-type="button" data-component-variant="primary" type="button" class="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-volt text-white rounded-xl font-label text-xs font-bold hover:brightness-110 active:scale-[0.98] transition-all">
+                <span class="material-symbols-outlined text-[17px]">directions_run</span>
+                <span>Ver Estratégia de Ritmo</span>
+              </button>
+              <button data-component-id="button-secondary" data-component-type="button" data-component-variant="secondary" type="button" class="inline-flex items-center justify-center py-2.5 px-3 bg-dark-surface text-dark-on-surface rounded-xl font-label text-xs font-semibold border border-dark-outline hover:border-volt transition-colors">
+                <span class="material-symbols-outlined text-[17px]">alt_route</span>
+                <span class="sr-only">Altimetria da prova</span>
+              </button>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <!-- Weekly Training Sync / Planilha da Semana (Training Integration) -->
+      <section aria-labelledby="weekly-training-heading">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-pace-teal text-[18px]">event_note</span>
+            <h2 id="weekly-training-heading" class="font-headline text-headline-sm text-white">Planilha da Semana</h2>
+          </div>
+          <span class="text-xs font-metric text-pace-teal font-semibold">Volume: 42 km</span>
+        </div>
+
+        <!-- Weekly Days Mini Stepper / Calendar Bar -->
+        <div class="grid grid-cols-7 gap-1.5 p-2 bg-dark-surface-variant rounded-xl border border-dark-outline-variant text-center mb-3">
+          <div class="flex flex-col items-center py-1 rounded-lg bg-dark-surface/60 border border-dark-outline-variant/30">
+            <span class="text-[10px] text-dark-on-surface-variant font-label">SEG</span>
+            <span class="material-symbols-outlined text-success text-[16px] my-0.5">check_circle</span>
+            <span class="text-[10px] font-metric text-white">Off</span>
+          </div>
+          <div class="flex flex-col items-center py-1 rounded-lg bg-volt/15 border border-volt/50">
+            <span class="text-[10px] text-volt font-label font-bold">TER</span>
+            <span class="material-symbols-outlined text-volt text-[16px] my-0.5">directions_run</span>
+            <span class="text-[10px] font-metric font-bold text-volt">10k</span>
+          </div>
+          <div class="flex flex-col items-center py-1 rounded-lg bg-dark-surface/60 border border-dark-outline-variant/30">
+            <span class="text-[10px] text-dark-on-surface-variant font-label">QUA</span>
+            <span class="material-symbols-outlined text-dark-on-surface-variant text-[16px] my-0.5">schedule</span>
+            <span class="text-[10px] font-metric text-dark-on-surface-variant">6k</span>
+          </div>
+          <div class="flex flex-col items-center py-1 rounded-lg bg-dark-surface/60 border border-dark-outline-variant/30">
+            <span class="text-[10px] text-dark-on-surface-variant font-label">QUI</span>
+            <span class="material-symbols-outlined text-dark-on-surface-variant text-[16px] my-0.5">fitness_center</span>
+            <span class="text-[10px] font-metric text-dark-on-surface-variant">Fort.</span>
+          </div>
+          <div class="flex flex-col items-center py-1 rounded-lg bg-dark-surface/60 border border-dark-outline-variant/30">
+            <span class="text-[10px] text-dark-on-surface-variant font-label">SEX</span>
+            <span class="material-symbols-outlined text-dark-on-surface-variant text-[16px] my-0.5">schedule</span>
+            <span class="text-[10px] font-metric text-dark-on-surface-variant">8k</span>
+          </div>
+          <div class="flex flex-col items-center py-1 rounded-lg bg-dark-surface/60 border border-dark-outline-variant/30">
+            <span class="text-[10px] text-dark-on-surface-variant font-label">SÁB</span>
+            <span class="material-symbols-outlined text-dark-on-surface-variant text-[16px] my-0.5">bedtime</span>
+            <span class="text-[10px] font-metric text-dark-on-surface-variant">Off</span>
+          </div>
+          <div class="flex flex-col items-center py-1 rounded-lg bg-pace-teal/15 border border-pace-teal/40">
+            <span class="text-[10px] text-pace-teal font-label font-bold">DOM</span>
+            <span class="material-symbols-outlined text-pace-teal text-[16px] my-0.5">trophy</span>
+            <span class="text-[10px] font-metric font-bold text-pace-teal">18k</span>
+          </div>
+        </div>
+
+        <!-- Today Workout Detail (Card Action) -->
+        <article data-component-id="card-action" data-component-type="card" data-component-variant="action" class="bg-dark-surface-variant rounded-xl border border-dark-outline-variant p-3.5">
+          <header class="flex items-center justify-between mb-1.5">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-volt ring-4 ring-volt/20"></span>
+              <h3 class="font-label text-label-lg font-bold text-white">Treino de Hoje: Tiros de 1.000m</h3>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-metric font-bold bg-volt/15 text-volt">Intenso</span>
+          </header>
+
+          <p class="font-body text-body-sm text-dark-on-surface-variant mb-3">
+            2 km aquec. + <strong>6x 1.000m a 4:15 min/km</strong> (recup. 90s trote ativo) + 2 km desaquec.
+          </p>
+
+          <div class="grid grid-cols-3 gap-2 py-2 px-2.5 bg-dark-surface rounded-lg text-xs font-metric mb-3">
+            <div>
+              <span class="text-[10px] font-label text-dark-on-surface-variant block">Distância</span>
+              <strong class="text-white">10.0 km</strong>
+            </div>
+            <div>
+              <span class="text-[10px] font-label text-dark-on-surface-variant block">Ritmo do Tiro</span>
+              <strong class="text-volt">4:15/km</strong>
+            </div>
+            <div>
+              <span class="text-[10px] font-label text-dark-on-surface-variant block">Altimetria</span>
+              <strong class="text-dark-on-surface-variant">+35m</strong>
+            </div>
+          </div>
+
+          <footer class="flex items-center gap-2 pt-1 border-t border-dark-outline-variant/40">
+            <button type="button" class="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-volt text-white rounded-lg font-label text-xs font-bold hover:brightness-110 active:scale-[0.98] transition-all">
+              <span class="material-symbols-outlined text-[17px]">play_arrow</span>
+              <span>Iniciar Sessão com GPS</span>
+            </button>
+            <button type="button" class="inline-flex items-center justify-center p-2 rounded-lg bg-dark-surface border border-dark-outline text-dark-on-surface-variant hover:text-white" title="Registrar treino manual ou Strava">
+              <span class="material-symbols-outlined text-[18px]">sync</span>
+            </button>
+          </footer>
+        </article>
+      </section>
+
+      <!-- Calendar & Upcoming Races (Interactive Cards) -->
+      <section aria-labelledby="other-races-heading" class="flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-white text-[18px]">calendar_today</span>
+            <h2 id="other-races-heading" class="font-headline text-headline-sm text-white">Outras Provas no Calendário</h2>
+          </div>
+          
+          <button type="button" class="text-xs font-label font-bold text-volt flex items-center gap-0.5 hover:underline">
+            <span>+ Adicionar</span>
+          </button>
+        </div>
+
+        <!-- Filter Chips (Chip Action) -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <button data-component-id="chip-action" data-component-type="chip" data-component-variant="action" type="button" class="px-3 py-1 rounded-full text-xs font-label font-bold bg-volt text-white shadow-sm shrink-0">
+            Todas (3)
+          </button>
+          <button data-component-id="chip-action" data-component-type="chip" data-component-variant="action" type="button" class="px-3 py-1 rounded-full text-xs font-label font-semibold bg-dark-surface-variant text-dark-on-surface-variant border border-dark-outline-variant shrink-0 hover:border-volt">
+            10K (1)
+          </button>
+          <button data-component-id="chip-action" data-component-type="chip" data-component-variant="action" type="button" class="px-3 py-1 rounded-full text-xs font-label font-semibold bg-dark-surface-variant text-dark-on-surface-variant border border-dark-outline-variant shrink-0 hover:border-volt">
+            21K (1)
+          </button>
+          <button data-component-id="chip-action" data-component-type="chip" data-component-variant="action" type="button" class="px-3 py-1 rounded-full text-xs font-label font-semibold bg-dark-surface-variant text-dark-on-surface-variant border border-dark-outline-variant shrink-0 hover:border-volt">
+            42K (1)
+          </button>
+        </div>
+
+        <!-- Race List Items (Card Interactive) -->
+        <div class="flex flex-col gap-2.5">
+          <!-- Race Item 1 -->
+          <article data-component-id="card-interactive" data-component-type="card" data-component-variant="interactive" class="p-3.5 bg-dark-surface-variant rounded-xl border border-dark-outline-variant hover:border-volt/70 transition-all flex flex-col gap-2">
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-metric font-bold bg-pace-teal/15 text-pace-teal border border-pace-teal/30">10K</span>
+                  <span class="text-xs font-body text-dark-on-surface-variant">Em 72 dias • 28 Set 2026</span>
+                </div>
+                <h3 class="font-headline text-headline-sm text-white mt-1">Corrida Integração Campinas</h3>
+                <p class="font-body text-xs text-dark-on-surface-variant">Lagoa do Taquaral • Percurso Rápido</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] font-label text-dark-on-surface-variant uppercase block">Meta RP</span>
+                <span class="font-metric text-metric-md font-bold text-volt">44:30</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-dark-outline-variant/40 text-xs">
+              <span class="text-dark-on-surface-variant flex items-center gap-1">
+                <span class="material-symbols-outlined text-[15px] text-success">verified</span>
+                Inscrição confirmada (Kit nº 2419)
+              </span>
+              <span class="font-metric text-dark-on-surface font-semibold">Pace: 4:27</span>
+            </div>
+          </article>
+
+          <!-- Race Item 2 -->
+          <article data-component-id="card-interactive-2" data-component-type="card" data-component-variant="interactive" class="p-3.5 bg-dark-surface-variant rounded-xl border border-dark-outline-variant hover:border-volt/70 transition-all flex flex-col gap-2">
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-metric font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">42K</span>
+                  <span class="text-xs font-body text-dark-on-surface-variant">Em 148 dias • 15 Nov 2026</span>
+                </div>
+                <h3 class="font-headline text-headline-sm text-white mt-1">Maratona de Curitiba</h3>
+                <p class="font-body text-xs text-dark-on-surface-variant">Centro Cívico • Percurso Ondulado</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] font-label text-dark-on-surface-variant uppercase block">Meta RP</span>
+                <span class="font-metric text-metric-md font-bold text-white">3h35m</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-dark-outline-variant/40 text-xs">
+              <span class="text-dark-on-surface-variant flex items-center gap-1">
+                <span class="material-symbols-outlined text-[15px] text-warning">pending</span>
+                Treinamento base inicia em 3 semanas
+              </span>
+              <span class="font-metric text-dark-on-surface font-semibold">Pace: 5:06</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- FAB / CTA: Registrar Nova Corrida ou Prova -->
+      <section class="mt-1">
+        <button data-component-id="button-primary" data-component-type="button" data-component-variant="primary" type="button" class="w-full inline-flex items-center justify-center gap-2 py-3.5 px-4 bg-gradient-to-r from-volt to-[#FF7043] text-white rounded-xl font-label text-sm font-bold shadow-lg shadow-volt/20 hover:brightness-110 active:scale-[0.99] transition-all">
+          <span class="material-symbols-outlined text-[20px]">add_circle</span>
+          <span>Registrar Nova Competição ou Treino</span>
+        </button>
+      </section>
+
+    </main>
+
+    <!-- Bottom Persistent Mobile App Navigation (Android Style) -->
+    <nav class="fixed bottom-0 w-full max-w-[390px] z-40 bg-dark-surface/95 backdrop-blur-md border-t border-dark-outline-variant/70 px-3 py-2 flex items-center justify-around shadow-2xl">
+      <button type="button" class="flex flex-col items-center gap-1 py-1 px-2 text-dark-on-surface-variant hover:text-white transition-colors">
+        <span class="material-symbols-outlined text-[22px]">dashboard</span>
+        <span class="font-label text-[10px]">Início</span>
+      </button>
+
+      <button type="button" class="flex flex-col items-center gap-1 py-1 px-2 text-volt transition-colors relative">
+        <span class="material-symbols-outlined text-[22px]" style="font-variation-settings: &#39;FILL&#39; 1;">calendar_month</span>
+        <span class="font-label text-[10px] font-bold">Provas</span>
+        <span class="w-1 h-1 rounded-full bg-volt -mt-0.5"></span>
+      </button>
+
+      <!-- Center Action Button (Start Run) -->
+      <button type="button" class="w-11 h-11 -mt-4 rounded-full bg-volt text-white flex items-center justify-center shadow-lg shadow-volt/40 ring-4 ring-dark-surface hover:scale-105 active:scale-95 transition-transform" aria-label="Iniciar Gravação de Corrida">
+        <span class="material-symbols-outlined text-[24px]">directions_run</span>
+      </button>
+
+      <button type="button" class="flex flex-col items-center gap-1 py-1 px-2 text-dark-on-surface-variant hover:text-white transition-colors">
+        <span class="material-symbols-outlined text-[22px]">fitness_center</span>
+        <span class="font-label text-[10px]">Planilha</span>
+      </button>
+
+      <button type="button" class="flex flex-col items-center gap-1 py-1 px-2 text-dark-on-surface-variant hover:text-white transition-colors">
+        <span class="material-symbols-outlined text-[22px]">military_tech</span>
+        <span class="font-label text-[10px]">Recordes</span>
+      </button>
+    </nav>
+
+  </div>
+
+
+
+</body></html>

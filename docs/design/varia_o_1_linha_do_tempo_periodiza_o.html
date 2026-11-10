@@ -1,0 +1,363 @@
+<!DOCTYPE html><html lang="pt-BR" class="dark"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendário de Provas — Linha do Tempo e Periodização</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">/** @type {import('tailwindcss').Config} */
+globalThis.tailwind = globalThis.tailwind || {};
+globalThis.tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        'volt': '#FF5722',
+        'pace-teal': '#0D9488',
+        'success': '#16A34A',
+        'warning': '#D97706',
+        'error': '#DC2626',
+        'light-primary': '#D84315',
+        'light-on-primary': '#080808',
+        'light-primary-container': '#FFEDE8',
+        'light-on-primary-container': '#4E1202',
+        'light-secondary': '#0F766E',
+        'light-on-secondary': '#FFFFFF',
+        'light-secondary-container': '#CCFBF1',
+        'light-on-secondary-container': '#115E59',
+        'light-surface': '#F8FAFC',
+        'light-on-surface': '#0F172A',
+        'light-surface-variant': '#EDF2F7',
+        'light-on-surface-variant': '#475569',
+        'light-outline': '#CBD5E1',
+        'light-outline-variant': '#E2E8F0',
+        'dark-primary': '#FF6E40',
+        'dark-on-primary': '#3E1100',
+        'dark-primary-container': '#5F1B00',
+        'dark-on-primary-container': '#FFDBCD',
+        'dark-secondary': '#14B8A6',
+        'dark-on-secondary': '#003731',
+        'dark-secondary-container': '#005047',
+        'dark-on-secondary-container': '#99F6E4',
+        'dark-surface': '#090D14',
+        'dark-on-surface': '#F1F5F9',
+        'dark-surface-variant': '#161F30',
+        'dark-on-surface-variant': '#94A3B8',
+        'dark-outline': '#334155',
+        'dark-outline-variant': '#1E293B',
+      },
+      borderRadius: {
+        'sm': '6px',
+        'DEFAULT': '12px',
+        'md': '14px',
+        'lg': '18px',
+        'xl': '24px',
+        'full': '9999px',
+      },
+      spacing: {
+        'gutter-xs': '4px',
+        'gutter-sm': '8px',
+        'gutter-md': '12px',
+        'gutter-lg': '16px',
+        'gutter-xl': '24px',
+        'gutter-2xl': '32px',
+        'section': '24px',
+        'page-margin': '16px',
+      },
+      fontFamily: {
+        'display': ['"Lexend"', 'sans-serif'],
+        'headline': ['"Lexend"', 'sans-serif'],
+        'body': ['"Instrument Sans"', 'sans-serif'],
+        'label': ['"Instrument Sans"', 'sans-serif'],
+        'metric': ['"M PLUS 1 Code"', 'sans-serif'],
+      },
+      fontSize: {
+        'display-lg': ['40px', { lineHeight: '48px', letterSpacing: '-1px', fontWeight: '800' }],
+        'display-lg-mobile': ['32px', { lineHeight: '38px', letterSpacing: '-0.75px', fontWeight: '800' }],
+        'display-md': ['34px', { lineHeight: '42px', letterSpacing: '-0.5px', fontWeight: '700' }],
+        'display-md-mobile': ['28px', { lineHeight: '34px', letterSpacing: '-0.5px', fontWeight: '700' }],
+        'headline-lg': ['28px', { lineHeight: '36px', letterSpacing: '-0.5px', fontWeight: '700' }],
+        'headline-lg-mobile': ['24px', { lineHeight: '30px', letterSpacing: '-0.25px', fontWeight: '700' }],
+        'headline-md': ['22px', { lineHeight: '28px', letterSpacing: '-0.2px', fontWeight: '600' }],
+        'headline-sm': ['18px', { lineHeight: '24px', letterSpacing: '0px', fontWeight: '600' }],
+        'body-lg': ['16px', { lineHeight: '24px', letterSpacing: '0px', fontWeight: '400' }],
+        'body-md': ['14px', { lineHeight: '20px', letterSpacing: '0px', fontWeight: '400' }],
+        'body-sm': ['12px', { lineHeight: '16px', letterSpacing: '0px', fontWeight: '400' }],
+        'label-lg': ['14px', { lineHeight: '20px', letterSpacing: '0.1px', fontWeight: '600' }],
+        'label-md': ['12px', { lineHeight: '16px', letterSpacing: '0.2px', fontWeight: '600' }],
+        'label-sm': ['10px', { lineHeight: '14px', letterSpacing: '0.4px', fontWeight: '700' }],
+        'metric-display': ['32px', { lineHeight: '36px', letterSpacing: '-0.5px', fontWeight: '700' }],
+        'metric-md': ['20px', { lineHeight: '26px', letterSpacing: '0px', fontWeight: '600' }],
+        'metric-sm': ['14px', { lineHeight: '18px', letterSpacing: '0px', fontWeight: '500' }],
+      },
+      transitionDuration: {
+        'state-change': '120ms',
+        'surface-enter': '220ms',
+        'surface-exit': '150ms',
+      },
+      transitionDelay: {
+        'state-change': '0ms',
+        'surface-enter': '0ms',
+        'surface-exit': '0ms',
+      },
+      transitionTimingFunction: {
+        'state-change': 'ease-out',
+        'surface-enter': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'surface-exit': 'cubic-bezier(0.4, 0, 1, 1)',
+      },
+    },
+  },
+};
+if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
+</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@600;700;800&amp;family=Instrument+Sans:wght@400;500;600;700&amp;family=M+PLUS+1+Code:wght@500;600;700&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+</head>
+<body class="min-h-[884px] bg-dark-surface text-dark-on-surface font-body antialiased flex justify-center selection:bg-volt selection:text-white" data-stitch-vh="min-h-[884px]===min-h-screen">
+
+  <!-- Mobile Device Shell -->
+  <div class="w-full max-w-[390px] min-h-[884px] bg-dark-surface flex flex-col relative pb-24 shadow-2xl border-x border-dark-outline-variant/40" data-stitch-vh="min-h-[884px]===min-h-screen">
+
+    <!-- Top Status Bar & App Header -->
+    <header class="sticky top-0 z-30 bg-dark-surface/95 backdrop-blur-sm border-b border-dark-outline-variant/60 px-4 pt-3 pb-3">
+      <div class="flex items-center justify-between text-xs text-dark-on-surface-variant font-metric pb-2">
+        <span>07:15</span>
+        <div class="flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[15px]">signal_cellular_alt</span>
+          <span class="material-symbols-outlined text-[15px]">wifi</span>
+          <span class="material-symbols-outlined text-[15px]">battery_full</span>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mt-1">
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-headline text-headline-sm font-bold tracking-tight text-white">Temporada 2026</span>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-metric font-bold bg-pace-teal/20 text-pace-teal font-label">3 PROVAS</span>
+          </div>
+          <p class="font-body text-[11px] text-dark-on-surface-variant">Linha do tempo &amp; macrociclos de treino</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button data-component-id="button-icon" data-component-type="button" data-component-variant="icon" type="button" aria-label="Filtrar ano ou distâncias" class="w-9 h-9 rounded-xl bg-dark-surface-variant text-dark-on-surface border border-dark-outline-variant flex items-center justify-center hover:border-volt transition-colors">
+            <span class="material-symbols-outlined text-[20px]">filter_list</span>
+          </button>
+          
+          <img src="https://lh3.googleusercontent.com/aida/ALJJyrBQou2KZ8aefwW5VnzYHHlIsD2-2YW63Fu5OGcM1Y4wIfeIEoZkRUjUUsk2MgGsHx_5Zt8pfoaTeftJt4tPXElEsGSBTLlH5AufOX_4yyYwumB2p_P9Mc9QXLcgrpbvrQCaTjQGWNtJuvXbsWPRmLlYdMzML7hRHd0-9oS_8Z6DC4w38kXsMSegSiMoFaSJZHn2P7pNEk-I16guxHn13zEq2OKqvw2YI3G08bt8ExB_Y63M_esZRQ" alt="Foto do perfil de atleta" class="w-9 h-9 rounded-xl object-cover border border-dark-outline">
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content: Continuous Timeline -->
+    <main class="flex-1 px-4 pt-4 flex flex-col gap-5">
+
+      <!-- Macro Status Widget -->
+      <section class="p-3.5 bg-dark-surface-variant rounded-2xl border border-dark-outline-variant flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-volt/15 text-volt flex items-center justify-center font-metric text-lg font-bold border border-volt/30">
+            38d
+          </div>
+          <div>
+            <span class="font-label text-[11px] text-dark-on-surface-variant uppercase tracking-wider block">Próximo Desafio</span>
+            <strong class="font-headline text-sm text-white">Meia do Rio 21K</strong>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="text-[11px] font-label text-dark-on-surface-variant block">Volume Previsto</span>
+          <span class="font-metric text-xs font-bold text-pace-teal">168 km até a largada</span>
+        </div>
+      </section>
+
+      <!-- Month Period Header -->
+      <div class="flex items-center justify-between pt-1">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-volt"></span>
+          <h2 class="font-headline text-headline-sm text-white">Julho 2026</h2>
+        </div>
+        <span class="text-xs font-label text-volt font-semibold">Ciclo Atual (Fase Específica)</span>
+      </div>
+
+      <!-- Vertical Timeline Flow -->
+      <div class="relative pl-6 border-l-2 border-dark-outline-variant/60 flex flex-col gap-6 ml-2">
+
+        <!-- Timeline Node 1: Current Week Workout Milestone -->
+        <div class="relative">
+          <!-- Pin Icon -->
+          <div class="absolute -left-[31px] top-0 w-6 h-6 rounded-full bg-dark-surface border-2 border-pace-teal flex items-center justify-center text-pace-teal">
+            <span class="material-symbols-outlined text-[13px]">directions_run</span>
+          </div>
+
+          <div class="bg-dark-surface-variant/80 border border-dark-outline-variant rounded-xl p-3">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[11px] font-metric text-pace-teal font-semibold">Semana 8 de Treinos • Em andamento</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-metric bg-dark-surface text-white border border-dark-outline">Hoje: 10km Tiros</span>
+            </div>
+            <p class="font-body text-xs text-dark-on-surface-variant">
+              Longão de domingo programado para <strong>18 km em ritmo de prova (4:45/km)</strong>.
+            </p>
+          </div>
+        </div>
+
+        <!-- Timeline Node 2: Target Race Day (Hero on Timeline) -->
+        <div class="relative">
+          <!-- Race Pin Icon -->
+          <div class="absolute -left-[35px] top-1 w-8 h-8 rounded-full bg-volt text-white flex items-center justify-center shadow-md shadow-volt/40 ring-4 ring-dark-surface">
+            <span class="material-symbols-outlined text-[18px]">sports_score</span>
+          </div>
+
+          <article class="bg-dark-surface-variant rounded-2xl border-2 border-volt/60 p-4 shadow-lg shadow-volt/5 overflow-hidden relative">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-metric font-bold bg-volt/20 text-volt">
+                  14 JUL • DOMINGO • 06:00
+                </span>
+                <h3 class="font-headline text-headline-sm text-white mt-1">Meia Maratona do Rio</h3>
+                <p class="font-body text-xs text-dark-on-surface-variant">21.097 km • Aterro do Flamengo, RJ</p>
+              </div>
+              <div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-dark-outline">
+                <img src="https://lh3.googleusercontent.com/aida/ALJJyrDc-7gVhUyVN8gbqnvWoMcA4kwDc70gSh0CCtLLIxzISbPn2_2ckMTTAWm-A0gjKKhj4fddDwYHcO0KpXDt9IbG8M0nKcZ2NJ3kPXaFXWonp83yEBQAtitKyC79nzIAJ2joT5rkCWwOHCUzk8a5cgBmORnLhZ499DKr8uUzrPbcXYaWbNK9KyTpIqyjQHasfxFfCxzNzTj_iogzNUpw8xF80ACWOD5C7e-LqLnhcg4A1AwsGHuYNg" alt="Foto Prova Rio" class="w-full h-full object-cover">
+              </div>
+            </div>
+
+            <!-- Pace Splits Target Box -->
+            <div class="p-2.5 bg-dark-surface rounded-xl border border-dark-outline-variant/60 flex items-center justify-around my-2 text-center">
+              <div>
+                <span class="text-[10px] font-label text-dark-on-surface-variant block uppercase">Pace Alvo</span>
+                <span class="font-metric text-sm font-bold text-volt">4:45/km</span>
+              </div>
+              <div class="w-px h-6 bg-dark-outline-variant/60"></div>
+              <div>
+                <span class="text-[10px] font-label text-dark-on-surface-variant block uppercase">Meta Final</span>
+                <span class="font-metric text-sm font-bold text-white">1h40m</span>
+              </div>
+              <div class="w-px h-6 bg-dark-outline-variant/60"></div>
+              <div>
+                <span class="text-[10px] font-label text-dark-on-surface-variant block uppercase">Regressiva</span>
+                <span class="font-metric text-sm font-bold text-pace-teal">38 dias</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-1 text-xs">
+              <span class="text-success flex items-center gap-1 font-body text-[11px]">
+                <span class="material-symbols-outlined text-[15px]">check_circle</span>
+                Inscrição e largada no Pelotão C
+              </span>
+              <button type="button" class="text-xs font-label font-bold text-volt hover:underline flex items-center">
+                Ver Detalhes
+                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+              </button>
+            </div>
+          </article>
+        </div>
+
+        <!-- Month Period Header 2 -->
+        <div class="relative -ml-6 pt-2">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="w-2 h-2 rounded-full bg-pace-teal"></span>
+            <h2 class="font-headline text-headline-sm text-white">Setembro 2026</h2>
+            <span class="text-xs font-metric text-dark-on-surface-variant">• Em 72 dias</span>
+          </div>
+        </div>
+
+        <!-- Timeline Node 3: 10K Intermediate Race -->
+        <div class="relative">
+          <div class="absolute -left-[31px] top-1 w-6 h-6 rounded-full bg-dark-surface border-2 border-pace-teal flex items-center justify-center text-pace-teal">
+            <span class="material-symbols-outlined text-[13px]">flag</span>
+          </div>
+
+          <article class="bg-dark-surface-variant rounded-xl border border-dark-outline-variant p-3.5 flex flex-col gap-2">
+            <div class="flex items-start justify-between">
+              <div>
+                <span class="text-[10px] font-metric text-pace-teal font-semibold">28 SET • DOMINGO</span>
+                <h3 class="font-headline text-sm font-bold text-white">Corrida Integração 10K</h3>
+                <p class="font-body text-xs text-dark-on-surface-variant">Lagoa do Taquaral, Campinas</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] font-label text-dark-on-surface-variant block">RP Alvo</span>
+                <span class="font-metric text-xs font-bold text-volt">44:30 (4:27/km)</span>
+              </div>
+            </div>
+            <div class="text-xs text-dark-on-surface-variant pt-2 border-t border-dark-outline-variant/40 flex items-center justify-between">
+              <span>Prova de velocidade (Teste de VO2 max)</span>
+              <span class="text-white font-label font-semibold">Faltam 72d</span>
+            </div>
+          </article>
+        </div>
+
+        <!-- Month Period Header 3 -->
+        <div class="relative -ml-6 pt-2">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+            <h2 class="font-headline text-headline-sm text-white">Novembro 2026</h2>
+            <span class="text-xs font-metric text-dark-on-surface-variant">• Em 148 dias</span>
+          </div>
+        </div>
+
+        <!-- Timeline Node 4: 42K Marathon -->
+        <div class="relative">
+          <div class="absolute -left-[31px] top-1 w-6 h-6 rounded-full bg-dark-surface border-2 border-purple-400 flex items-center justify-center text-purple-400">
+            <span class="material-symbols-outlined text-[13px]">military_tech</span>
+          </div>
+
+          <article class="bg-dark-surface-variant rounded-xl border border-dark-outline-variant p-3.5 flex flex-col gap-2">
+            <div class="flex items-start justify-between">
+              <div>
+                <span class="text-[10px] font-metric text-purple-400 font-semibold">15 NOV • DOMINGO</span>
+                <h3 class="font-headline text-sm font-bold text-white">Maratona de Curitiba 42.195K</h3>
+                <p class="font-body text-xs text-dark-on-surface-variant">Centro Cívico • Percurso Técnico</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] font-label text-dark-on-surface-variant block">Meta</span>
+                <span class="font-metric text-xs font-bold text-white">3h35m (5:06/km)</span>
+              </div>
+            </div>
+            <div class="text-xs text-dark-on-surface-variant pt-2 border-t border-dark-outline-variant/40 flex items-center justify-between">
+              <span>Macrociclo específico começa em agosto</span>
+              <span class="text-white font-label font-semibold">Faltam 148d</span>
+            </div>
+          </article>
+        </div>
+
+      </div>
+
+      <!-- Add Race CTA -->
+      <button type="button" class="w-full py-3 bg-dark-surface-variant border border-dashed border-dark-outline hover:border-volt text-volt rounded-xl font-label text-xs font-bold flex items-center justify-center gap-1.5 transition-colors mt-2">
+        <span class="material-symbols-outlined text-[18px]">add</span>
+        <span>Adicionar Nova Competição ao Calendário</span>
+      </button>
+
+    </main>
+
+    <!-- Bottom Persistent Mobile Nav -->
+    <nav class="fixed bottom-0 w-full max-w-[390px] z-40 bg-dark-surface/95 backdrop-blur-md border-t border-dark-outline-variant/70 px-3 py-2 flex items-center justify-around shadow-2xl">
+      <button type="button" class="flex flex-col items-center gap-1 py-1 px-2 text-dark-on-surface-variant hover:text-white transition-colors">
+        <span class="material-symbols-outlined text-[22px]">dashboard</span>
+        <span class="font-label text-[10px]">Início</span>
+      </button>
+
+      <button type="button" class="flex flex-col items-center gap-1 py-1 px-2 text-volt transition-colors relative">
+        <span class="material-symbols-outlined text-[22px]" style="font-variation-settings: &#39;FILL&#39; 1;">timeline</span>
+        <span class="font-label text-[10px] font-bold">Temporada</span>
+        <span class="w-1 h-1 rounded-full bg-volt -mt-0.5"></span>
+      </button>
+
+      <button type="button" class="w-11 h-11 -mt-4 rounded-full bg-volt text-white flex items-center justify-center shadow-lg shadow-volt/40 ring-4 ring-dark-surface hover:scale-105 active:scale-95 transition-transform" aria-label="Iniciar Gravação de Corrida">
+        <span class="material-symbols-outlined text-[24px]">directions_run</span>
+      </button>
+
+      <button type="button" class="flex flex-col items-center gap-1 py-1 px-2 text-dark-on-surface-variant hover:text-white transition-colors">
+        <span class="material-symbols-outlined text-[22px]">fitness_center</span>
+        <span class="font-label text-[10px]">Planilha</span>
+      </button>
+
+      <button type="button" class="flex flex-col items-center gap-1 py-1 px-2 text-dark-on-surface-variant hover:text-white transition-colors">
+        <span class="material-symbols-outlined text-[22px]">military_tech</span>
+        <span class="font-label text-[10px]">Recordes</span>
+      </button>
+    </nav>
+
+  </div>
+
+
+
+</body></html>
