@@ -12,7 +12,7 @@ import {
 import { createNewPlan } from "../lib/domain/plan-lifecycle";
 import { prisma } from "../lib/prisma";
 import { appToday } from "../lib/domain/clock";
-import { formatSessionDay } from "../lib/format";
+import { formatPace, formatSessionDay, SESSION_LABEL } from "../lib/format";
 
 test.beforeEach(async ({ page }) => {
   const userId = await getSeededUserId();
@@ -33,7 +33,9 @@ test("shows the current week's sessions in date order with type, pace and distan
   for (const [i, session] of sessions.entries()) {
     const row = rows.nth(i);
     await expect(row).toContainText(formatSessionDay(session.date));
-    await expect(row).toContainText(String(session.plannedDistanceKm));
+    await expect(row).toContainText(SESSION_LABEL[session.type]);
+    await expect(row).toContainText(formatPace(session.plannedPaceSecPerKm));
+    await expect(row).toContainText(`${session.plannedDistanceKm}km`);
   }
 });
 
@@ -67,13 +69,23 @@ test("a logged session shows as done with the actual pace next to the planned pa
   const row = page.getByRole("listitem").filter({ hasText: formatSessionDay(pastSession.date) });
   await expect(row).toContainText("Feito");
   await expect(row).toContainText("4:40/km"); // actual pace: 280s = 4:40/km
+  await expect(row).toContainText(`Pace planejado: ${formatPace(pastSession.plannedPaceSecPerKm)}`);
   await expect(row).not.toContainText("Perdida");
 });
 
 test("opening the dashboard after a week ends reassesses before showing next week", async ({ page }) => {
-  test.setTimeout(60000);
-  // Week 1 spans [today-10, today-4], already ended; week 2 is the current one.
+  test.setTimeout(150000);
   const userId = await getSeededUserId();
+
+  // On its last day week 1 has not ended yet: no reassessment (isWeekDue waits until the day after).
+  const lastDay = await seedActivePlan(userId, { daysAgo: 6 });
+  const lastDayWeek1 = await prisma.week.findFirstOrThrow({ where: { planId: lastDay.planId, weekNumber: 1 } });
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "Semana 1" })).toBeVisible();
+  expect(await prisma.weeklyAdjustment.count({ where: { weekId: lastDayWeek1.id } })).toBe(0);
+  await resetPlans(userId);
+
+  // Week 1 spans [today-10, today-4], already ended; week 2 is the current one.
   const { planId } = await seedActivePlan(userId, { daysAgo: 10 });
   const week1 = await prisma.week.findFirstOrThrow({ where: { planId, weekNumber: 1 } });
   const week1Sessions = await prisma.session.findMany({ where: { weekId: week1.id }, orderBy: { date: "asc" } });
@@ -82,12 +94,22 @@ test("opening the dashboard after a week ends reassesses before showing next wee
   for (const session of week1Sessions.slice(0, 2)) {
     await logWorkout(session.id, { rpe: 9 });
   }
+  const week2 = await prisma.week.findFirstOrThrow({ where: { planId, weekNumber: 2 } });
+  const week2Before = await prisma.session.findMany({ where: { weekId: week2.id }, orderBy: { date: "asc" } });
 
   await page.goto("/dashboard");
 
   await expect(page.getByRole("heading", { name: "Semana 2" })).toBeVisible();
   const adjustment = await prisma.weeklyAdjustment.findUniqueOrThrow({ where: { weekId: week1.id } });
   expect(adjustment.decision).toBe(Decision.REDUCE);
+  // The week shown is the reduced one: every session is shorter, and the page renders the new km.
+  const week2After = await prisma.session.findMany({ where: { weekId: week2.id }, orderBy: { date: "asc" } });
+  const rows = page.getByRole("listitem");
+  await expect(rows).toHaveCount(week2After.length);
+  for (const [i, session] of week2After.entries()) {
+    expect(session.plannedDistanceKm!).toBeLessThan(week2Before[i].plannedDistanceKm!);
+    await expect(rows.nth(i)).toContainText(`${session.plannedDistanceKm}km`);
+  }
 
   // Loading the dashboard again does not reassess week 1 a second time (relies on T17's ADJ-06).
   await page.goto("/dashboard");
