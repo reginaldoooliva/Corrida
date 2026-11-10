@@ -95,9 +95,10 @@ describe("weekly-adjustment", () => {
   describe("computeSignals", () => {
     it("computeSignals flags pace, RPE and missed-ratio at their documented thresholds", () => {
       // Pace exactly 5% slower (avg planned 300, avg actual 315), RPE avg exactly 8,
-      // missed exactly 1 of 4 planned sessions (25%).
+      // missed exactly 1 of 4 planned sessions (25%). The unlogged session's planned pace (400) is
+      // left out of the planned average: averaging it in (325) would make 315 faster, not slower.
       const week = {
-        sessions: [logged(280, 294, 7), logged(300, 315, 8), logged(320, 336, 9), unlogged(300)],
+        sessions: [logged(280, 294, 7), logged(300, 315, 8), logged(320, 336, 9), unlogged(400)],
       };
       expect(computeSignals(week)).toEqual({ paceDeviation: true, rpe: true, missed: true });
     });
