@@ -1120,27 +1120,28 @@ submit the result, start a new plan with the carried-over VDOT.
 
 **Run unit**: `npx vitest run lib/domain --reporter=verbose`
 **Run e2e**: `npx playwright test --reporter=list`
+<!-- Playwright's list reporter prints `ok N <file>:<line> › <title>` on this Windows shell (no ✓), so e2e proofs name that line. -->
 
 **C1** - Correct credentials create a session and redirect to `/dashboard` (AUTH-01, AC 1)
-Proof: run e2e | ✓ auth.spec.ts > login succeeds with correct credentials and redirects to dashboard
+Proof: run e2e | ok auth.spec.ts › login succeeds with correct credentials and redirects to dashboard
 
 **C2** - Wrong credentials are rejected with a generic message (AUTH-02, AC 2)
-Proof: run e2e | ✓ auth.spec.ts > login with wrong credentials shows generic invalid-credentials message
+Proof: run e2e | ok auth.spec.ts › login with wrong credentials shows generic invalid-credentials message
 
 **C3** - An unauthenticated request for a protected page redirects to `/login` (AUTH-03, AC 3)
-Proof: run e2e | ✓ auth.spec.ts > visiting /dashboard while logged out redirects to /login
+Proof: run e2e | ok auth.spec.ts › visiting /dashboard while logged out redirects to /login
 
 **C4** - The stored password is a salted hash, never plaintext (AUTH-04, AC 4)
 Proof: run unit | ✓ auth > stored passwordHash is bcrypt, never the plaintext password
 
 **C5** - No UI path exists to register a second account (AUTH-05, AC 5)
-Proof: run e2e | ✓ auth.spec.ts > visiting /register and /signup returns 404
+Proof: run e2e | ok auth.spec.ts › visiting /register and /signup returns 404
 
 **C6** - A new plan with no prior VDOT offers a guided test or manual entry (VDOT-01, AC 1)
-Proof: run e2e | ✓ onboarding.spec.ts > new plan offers guided test or manual time entry
+Proof: run e2e | ok onboarding.spec.ts › new plan offers guided test or manual time entry
 
 **C7** - The guided test shows instructions, then a result-entry form (VDOT-02, AC 2)
-Proof: run e2e | ✓ onboarding.spec.ts > guided test shows instructions and a result entry form
+Proof: run e2e | ok onboarding.spec.ts › guided test shows instructions and a result entry form
 
 **C8** - Submitting a VDOT-establishing result records a VdotHistory entry with the right source (VDOT-03, AC 3)
 Proof: run unit | ✓ plan-generator > createPlan records VdotHistory with source test or manual
@@ -1149,13 +1150,13 @@ Proof: run unit | ✓ plan-generator > createPlan records VdotHistory with sourc
 Proof: run unit | ✓ plan-generator > computePlanWeeks returns raceDate minus today in weeks
 
 **C10** - A below-minimum plan still generates, with a visible warning (PLAN-02, AC 5)
-Proof: run e2e | ✓ onboarding.spec.ts > a plan shorter than the recommended minimum shows a visible warning
+Proof: run e2e | ok onboarding.spec.ts › a plan shorter than the recommended minimum still generates, with a visible warning
 
 **C11** - 3-6 training days are accepted and types are placed only on those days (PLAN-03, AC 6)
 Proof: run unit | ✓ plan-generator > generateSessions places a session on each selected day only
 
 **C12** - Fewer than 3 or more than 6 days is rejected with the range explained (PLAN-04, AC 7)
-Proof: run e2e | ✓ onboarding.spec.ts > selecting fewer than 3 or more than 6 days is rejected with the 3-6 range explained
+Proof: run e2e | ok onboarding.spec.ts › selecting fewer than 3 or more than 6 days is rejected with the 3-6 range explained
 
 **C13** - Phases are split in the documented proportions (PLAN-05, AC 8)
 Proof: run unit | ✓ plan-generator > splitPhases assigns taper, base, build and peak in the documented proportions
@@ -1170,34 +1171,34 @@ Proof: run unit | ✓ vdot > paceForVdot returns the correct pace for each sessi
 Proof: run unit | ✓ plan-generator > computePlanWeeks supports exactly the four race types and rejects others
 
 **C17** - The dashboard shows the current week's sessions in date order with details (DASH-01, AC 1)
-Proof: run e2e | ✓ dashboard.spec.ts > shows the current week's sessions in date order with type, pace and distance
+Proof: run e2e | ok dashboard.spec.ts › shows the current week's sessions in date order with type, pace and distance
 
 **C18** - A past, unlogged session shows as missed (DASH-02, AC 2)
-Proof: run e2e | ✓ dashboard.spec.ts > a past session with no log shows as missed
+Proof: run e2e | ok dashboard.spec.ts › a past session with no log shows as missed
 
 **C19** - A logged session shows as done with actual pace next to planned pace (DASH-03, AC 3)
-Proof: run e2e | ✓ dashboard.spec.ts > a logged session shows as done with the actual pace next to the planned pace
+Proof: run e2e | ok dashboard.spec.ts › a logged session shows as done with the actual pace next to the planned pace
 
 **C20** - Opening the dashboard after a week ends triggers reassessment before rendering the next week (DASH-04, AC 4)
-Proof: run e2e | ✓ dashboard.spec.ts > opening the dashboard after a week ends reassesses before showing next week
+Proof: run e2e | ok dashboard.spec.ts › opening the dashboard after a week ends reassesses before showing next week
 
 **C21** - The dashboard shows a retest prompt when the VDOT is due (VDOT-04, AC 5)
-Proof: run e2e | ✓ dashboard.spec.ts > shows a retest prompt when the VDOT is 4 or more weeks old
+Proof: run e2e | ok dashboard.spec.ts › shows a retest prompt when the VDOT is 4 or more weeks old
 
 **C22** - A valid workout log is saved and the session marked done (LOG-01, AC 1)
-Proof: run e2e | ✓ logging.spec.ts > submitting a valid workout log marks the session done
+Proof: run e2e | ok logging.spec.ts › submitting a valid workout log marks the session done
 
 **C23** - An out-of-bounds field is rejected and named in the error (LOG-02, AC 2)
-Proof: run e2e | ✓ logging.spec.ts > an out-of-range field is rejected and named in the error
+Proof: run e2e | ok logging.spec.ts › an out-of-range field is rejected and named in the error
 
 **C24** - Editing a log overwrites its stored values (LOG-03, AC 3)
-Proof: run e2e | ✓ logging.spec.ts > editing a log overwrites its stored values
+Proof: run e2e | ok logging.spec.ts › editing a log overwrites its stored values
 
 **C25** - Deleting a log reverts the session's status correctly (LOG-04, AC 4)
-Proof: run e2e | ✓ logging.spec.ts > deleting a log reverts the session to pending or missed
+Proof: run e2e | ok logging.spec.ts › deleting a log reverts the session to pending or missed
 
 **C26** - A session in an already-reassessed week can still be logged, edited and deleted (LOG-05, AC 5)
-Proof: run e2e | ✓ logging.spec.ts > a session in an already-reassessed week can still be logged, edited and deleted
+Proof: run e2e | ok logging.spec.ts › a session in an already-reassessed week can still be logged, edited and deleted
 
 **C27** - The 3 fatigue signals are computed at their documented thresholds (ADJ-01, AC 1)
 Proof: run unit | ✓ weekly-adjustment > computeSignals flags pace, RPE and missed-ratio at their documented thresholds
@@ -1221,28 +1222,28 @@ Proof: run unit | ✓ weekly-adjustment > reassessIfDue is a no-op when the week
 Proof: run unit | ✓ vdot > isRetestDue is true once the latest VdotHistory entry is 4 or more weeks old
 
 **C34** - Submitting a retest result updates the VDOT and future planned paces (VDOT-06, AC 2)
-Proof: run e2e | ✓ dashboard.spec.ts > submitting a retest result updates the VDOT and future sessions' planned paces
+Proof: run e2e | ok dashboard.spec.ts › submitting a retest result updates the VDOT and future sessions' planned paces
 
 **C35** - Dismissing the retest prompt hides it for the day only (VDOT-07, AC 3)
-Proof: run e2e | ✓ dashboard.spec.ts > dismissing the retest prompt hides it today and shows it again on the next visit
+Proof: run e2e | ok dashboard.spec.ts › dismissing the retest prompt hides it today and shows it again on the next visit
 
 **C36** - The history screen shows a VDOT-over-time chart (HIST-01, AC 1)
-Proof: run e2e | ✓ history.spec.ts > shows a VDOT-over-time chart built from VdotHistory
+Proof: run e2e | ok history.spec.ts › shows a VDOT-over-time chart built from VdotHistory
 
 **C37** - The history screen shows pace and weekly adherence (HIST-02, AC 2)
-Proof: run e2e | ✓ history.spec.ts > shows actual-vs-planned pace and weekly adherence
+Proof: run e2e | ok history.spec.ts › shows actual-vs-planned pace and weekly adherence
 
 **C38** - Selecting an archived plan shows its own charts and race result (HIST-03, AC 3)
-Proof: run e2e | ✓ history.spec.ts > selecting an archived plan shows its own charts and race result
+Proof: run e2e | ok history.spec.ts › selecting an archived plan shows its own charts and race result
 
 **C39** - A plan with no logged sessions shows an explicit empty state (HIST-04, AC 4)
-Proof: run e2e | ✓ history.spec.ts > a plan with no logged sessions shows an explicit empty state
+Proof: run e2e | ok history.spec.ts › a plan with no logged sessions shows an explicit empty state
 
 **C40** - A plan archives once its race date passes (LIFE-01, AC 1)
 Proof: run unit | ✓ plan-lifecycle > archiveIfPast sets status to archived once raceDate is in the past
 
 **C41** - An archived plan with no result shows the result prompt (LIFE-02, AC 2)
-Proof: run e2e | ✓ lifecycle.spec.ts > an archived plan with no race result shows a prompt asking for the finish time
+Proof: run e2e | ok lifecycle.spec.ts › an archived plan with no race result shows a prompt asking for the finish time
 
 **C42** - Submitting a finish time saves the result and adds a race-sourced VdotHistory entry (LIFE-03, AC 3)
 Proof: run unit | ✓ plan-lifecycle > recordRaceResult saves the result and adds a VdotHistory entry with source race
@@ -1251,7 +1252,7 @@ Proof: run unit | ✓ plan-lifecycle > recordRaceResult saves the result and add
 Proof: run unit | ✓ plan-lifecycle > initialVdotForNewPlan falls back to the archived plan's currentVdot when no race result exists
 
 **C44** - A new plan defaults its VDOT from the last race result, editable before confirming (LIFE-05, AC 5)
-Proof: run e2e | ✓ lifecycle.spec.ts > a new plan defaults its VDOT from the last race result and lets the user edit it before confirming
+Proof: run e2e | ok lifecycle.spec.ts › a new plan defaults its VDOT from the last race result and lets the user edit it before confirming
 
 **C45** - At most one active plan is allowed at a time (LIFE-06, AC 6 + Edge Case: second active plan)
 Proof: run unit | ✓ plan-lifecycle > createNewPlan rejects a second active plan while one already exists
@@ -1260,19 +1261,19 @@ Proof: run unit | ✓ plan-lifecycle > createNewPlan rejects a second active pla
 Proof: run unit | ✓ plan-lifecycle > recalculateFromCurrentWeek regenerates only future weeks and leaves past WorkoutLogs untouched
 
 **C47** - An invalid edit is rejected with the plan-creation validation message (EDIT-02, AC 2)
-Proof: run e2e | ✓ settings.spec.ts > editing to an invalid race date or day count is rejected with the plan-creation validation message
+Proof: run e2e | ok settings.spec.ts › editing to an invalid race date or day count is rejected with the plan-creation validation message
 
 **C48** - Recalculation uses currentVdot, not initialVdot (EDIT-03, AC 3)
 Proof: run unit | ✓ plan-lifecycle > recalculateFromCurrentWeek re-derives future sessions from currentVdot, not initialVdot
 
 **C49** - Settings shows the active plan's configuration (SET-01, AC 1)
-Proof: run e2e | ✓ settings.spec.ts > shows the active plan's race type, date, days and current VDOT
+Proof: run e2e | ok settings.spec.ts › shows the active plan's race type, date, days and current VDOT
 
 **C50** - Editing from settings applies the same recalculation as plan editing (SET-02, AC 2)
-Proof: run e2e | ✓ settings.spec.ts > changing days from settings triggers the same recalculation as plan editing
+Proof: run e2e | ok settings.spec.ts › changing days from settings triggers the same recalculation as plan editing
 
 **C51** - With no active plan, settings links to plan creation instead of showing empty fields (SET-03, AC 3)
-Proof: run e2e | ✓ settings.spec.ts > with no active plan, settings links to plan creation instead of showing empty fields
+Proof: run e2e | ok settings.spec.ts › with no active plan, settings links to plan creation instead of showing empty fields
 
 **C52** - A future-dated log is accepted and marks the session done (Edge Case: future-dated log)
 Proof: run unit | ✓ session-status > a future-dated WorkoutLog is accepted and the session is marked done
@@ -1284,7 +1285,7 @@ Proof: run unit | ✓ weekly-adjustment > a week with zero logs resolves missed=
 Proof: run unit | ✓ vdot > isPlausibleResult rejects a physically impossible time for the given distance
 
 **C55** - The last taper week is shown again if the race date has not yet arrived (Edge Case: taper-week rounding)
-Proof: run e2e | ✓ dashboard.spec.ts > after the last taper week ends before the race date, the dashboard shows that week's sessions again instead of an empty week
+Proof: run e2e | ok dashboard.spec.ts › after the last taper week ends before the race date, the dashboard shows that week's sessions again instead of an empty week
 
 ---
 
