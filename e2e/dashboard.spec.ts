@@ -12,6 +12,7 @@ import {
 import { createNewPlan } from "../lib/domain/plan-lifecycle";
 import { prisma } from "../lib/prisma";
 import { appToday } from "../lib/domain/clock";
+import { formatSessionDay } from "../lib/format";
 
 test.beforeEach(async ({ page }) => {
   const userId = await getSeededUserId();
@@ -31,7 +32,7 @@ test("shows the current week's sessions in date order with type, pace and distan
   await expect(rows).toHaveCount(sessions.length);
   for (const [i, session] of sessions.entries()) {
     const row = rows.nth(i);
-    await expect(row).toContainText(session.date.toISOString().slice(0, 10));
+    await expect(row).toContainText(formatSessionDay(session.date));
     await expect(row).toContainText(String(session.plannedDistanceKm));
   }
 });
@@ -47,7 +48,7 @@ test("a past session with no log shows as missed", async ({ page }) => {
 
   await page.goto("/dashboard");
 
-  const row = page.getByRole("listitem").filter({ hasText: pastSession.date.toISOString().slice(0, 10) });
+  const row = page.getByRole("listitem").filter({ hasText: formatSessionDay(pastSession.date) });
   await expect(row).toContainText("Perdida");
 });
 
@@ -63,7 +64,7 @@ test("a logged session shows as done with the actual pace next to the planned pa
 
   await page.goto("/dashboard");
 
-  const row = page.getByRole("listitem").filter({ hasText: pastSession.date.toISOString().slice(0, 10) });
+  const row = page.getByRole("listitem").filter({ hasText: formatSessionDay(pastSession.date) });
   await expect(row).toContainText("Feito");
   await expect(row).toContainText("4:40/km"); // actual pace: 280s = 4:40/km
   await expect(row).not.toContainText("Perdida");

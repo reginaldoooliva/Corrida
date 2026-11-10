@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { getSeededUserId, login, logWorkout, resetPlans, seedActivePlan } from "./helpers";
 import { prisma } from "../lib/prisma";
 import { appToday } from "../lib/domain/clock";
+import { formatSessionDay } from "../lib/format";
 
 test.beforeEach(async ({ page }) => {
   const userId = await getSeededUserId();
@@ -32,7 +33,7 @@ test("submitting a valid workout log marks the session done", async ({ page }) =
   const userId = await getSeededUserId();
   const { planId } = await seedActivePlan(userId);
   const session = await firstUnloggedSession(planId);
-  const date = session.date.toISOString().slice(0, 10);
+  const date = formatSessionDay(session.date);
 
   await page.goto("/dashboard");
   const row = page.getByRole("listitem").filter({ hasText: date });
@@ -80,7 +81,7 @@ test("an out-of-range field is rejected and named in the error", async ({ page }
   expect(await prisma.workoutLog.count({ where: { sessionId: session.id } })).toBe(0);
 });
 
-const dayOf = (date: Date) => date.toISOString().slice(0, 10);
+const dayOf = formatSessionDay;
 
 test("editing a log overwrites its stored values", async ({ page }) => {
   const userId = await getSeededUserId();

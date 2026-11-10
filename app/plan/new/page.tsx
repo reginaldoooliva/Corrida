@@ -1,32 +1,29 @@
-import { Phase, RaceType } from "@prisma/client";
+import { RaceType } from "@prisma/client";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { ArrowLeftIcon, FlagIcon } from "@/components/icons";
+import { SubmitButton } from "@/components/submit-button";
 import { getSeededUserId } from "@/lib/domain/auth";
 import { computePlanWeeks, MINIMUM_WEEKS } from "@/lib/domain/plan-generator";
 import { carryOverVdot } from "@/lib/domain/plan-lifecycle";
+import { formatLongDay, PHASE_LABEL, RACE_LABEL, RACE_NAME, WEEKDAY_SHORT } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 import { createCarryOverPlanAction, createPlanAction, type EstablishedVdot } from "./actions";
 
-const main = { maxWidth: 560, margin: "8vh auto", padding: 24 } as const;
-const field = { display: "grid", gap: 4 } as const;
-const input = { padding: "8px 10px", fontSize: 16 } as const;
-
-const RACE_LABEL: Record<RaceType, string> = {
-  [RaceType.FIVE_K]: "5km",
-  [RaceType.TEN_K]: "10km",
-  [RaceType.HALF]: "21km (meia maratona)",
-  [RaceType.MARATHON]: "42km (maratona)",
+const RACE_HINT: Record<RaceType, string> = {
+  [RaceType.FIVE_K]: "5K",
+  [RaceType.TEN_K]: "10K",
+  [RaceType.HALF]: "Meia maratona",
+  [RaceType.MARATHON]: "Maratona",
 };
 
-const WEEKDAY_LABEL = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-
-const PHASE_LABEL: Record<Phase, string> = {
-  [Phase.BASE]: "Base",
-  [Phase.BUILD]: "Construção",
-  [Phase.PEAK]: "Pico",
-  [Phase.TAPER]: "Polimento",
+const PHASE_CHIP: Record<string, string> = {
+  BASE: "chip chip-secondary",
+  BUILD: "chip",
+  PEAK: "chip chip-primary",
+  TAPER: "chip chip-success",
 };
 
 function weeks(n: number): string {
@@ -61,18 +58,11 @@ export default async function NewPlanPage({ searchParams }: NewPlanPageProps) {
     if (carried) {
       return (
         <RaceForm action={createCarryOverPlanAction} error={params.error}>
-          <label style={field}>
+          <label className="field">
             VDOT inicial
-            <input
-              name="vdot"
-              type="number"
-              step="0.1"
-              defaultValue={carried.vdot.toFixed(1)}
-              required
-              style={input}
-            />
+            <input name="vdot" type="number" inputMode="decimal" step="0.1" defaultValue={carried.vdot.toFixed(1)} required />
           </label>
-          <p>
+          <p className="hint" style={{ marginTop: -8 }}>
             Vindo do seu plano anterior. <Link href="/plan/new/vdot">Prefiro fazer um novo teste</Link>
           </p>
         </RaceForm>
@@ -96,41 +86,56 @@ function RaceForm({
   children?: React.ReactNode;
 }) {
   return (
-    <main style={main}>
-      <h1>Nova prova</h1>
+    <main className="page" style={{ maxWidth: 480 }}>
+      <Link href="/dashboard" className="back-link">
+        <ArrowLeftIcon size={18} /> Voltar ao dashboard
+      </Link>
+      <header className="page-header">
+        <p className="eyebrow">Passo 2 de 2 · Prova-alvo</p>
+        <h1>Nova prova</h1>
+        <p>Escolha a distância, a data e os dias em que você pode treinar.</p>
+      </header>
       {error && (
-        <p role="alert" style={{ color: "#b00020" }}>
+        <p role="alert" className="alert">
           {error}
         </p>
       )}
-      <form action={action} style={{ display: "grid", gap: 20, marginTop: 16 }}>
+      <form action={action} className="card form" style={{ gap: 24 }}>
         {children}
-        <fieldset style={field}>
+        <fieldset>
           <legend>Tipo de prova</legend>
-          {Object.values(RaceType).map((type) => (
-            <label key={type}>
-              <input type="radio" name="raceType" value={type} required /> {RACE_LABEL[type]}
-            </label>
-          ))}
+          <div className="race-options">
+            {Object.values(RaceType).map((type) => (
+              <label key={type} className="race-option">
+                <input type="radio" name="raceType" value={type} required />
+                <span>
+                  <strong>{RACE_LABEL[type]}</strong>
+                  <small aria-hidden="true">{RACE_HINT[type]}</small>
+                </span>
+              </label>
+            ))}
+          </div>
         </fieldset>
 
-        <label style={field}>
+        <label className="field">
           Data da prova
-          <input name="raceDate" type="date" required style={input} />
+          <input name="raceDate" type="date" required />
         </label>
 
-        <fieldset style={field}>
+        <fieldset>
           <legend>Dias de treino (3 a 6 por semana)</legend>
-          {WEEKDAY_LABEL.map((label, day) => (
-            <label key={day}>
-              <input type="checkbox" name="days" value={day} /> {label}
-            </label>
-          ))}
+          <div className="chip-group days">
+            {WEEKDAY_SHORT.map((label, day) => (
+              <label key={day} className="chip-option">
+                <input type="checkbox" name="days" value={day} /> {label}
+              </label>
+            ))}
+          </div>
         </fieldset>
 
-        <button type="submit" style={{ padding: "10px 12px", fontSize: 16 }}>
+        <SubmitButton pendingText="Montando a planilha..." className="btn-block">
           Criar plano
-        </button>
+        </SubmitButton>
       </form>
     </main>
   );
@@ -149,27 +154,52 @@ async function PlanSummary({ planId }: { planId: string }) {
   const minimum = MINIMUM_WEEKS[plan.raceType];
 
   return (
-    <main style={main}>
-      <h1>Plano criado</h1>
-      <p>
-        Prova de {RACE_LABEL[plan.raceType]} em {weeks(plan.weeks.length)}.
-      </p>
+    <main className="page" style={{ maxWidth: 480 }}>
+      <header className="page-header">
+        <span className="eyebrow">Planilha pronta</span>
+        <h1>Plano criado</h1>
+        <p>
+          Prova de {RACE_LABEL[plan.raceType]} em {weeks(plan.weeks.length)}.
+        </p>
+      </header>
+      <section aria-label="Resumo do plano" className="card card-hero">
+        <div className="row between">
+          <span className="chip chip-primary">
+            <FlagIcon size={14} /> {RACE_NAME[plan.raceType]}
+          </span>
+          <span className="muted">{formatLongDay(plan.raceDate)}</span>
+        </div>
+        <div className="metric-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <div className="metric-box">
+            <span className="metric-label">Semanas</span>
+            <span className="metric-md">{plan.weeks.length}</span>
+          </div>
+          <div className="metric-box">
+            <span className="metric-label">VDOT</span>
+            <span className="metric-md">{plan.currentVdot.toFixed(1)}</span>
+          </div>
+        </div>
+      </section>
       {belowMinimum && (
-        <p role="alert">
+        <p role="alert" className="alert alert-warning">
           Esse plano tem {weeks(totalWeeks)}, abaixo do mínimo recomendado de {weeks(minimum)} para
           uma prova de {RACE_LABEL[plan.raceType]} (faltam {weeks(minimum - totalWeeks)}).
         </p>
       )}
-      <ol>
-        {plan.weeks.map((week) => (
-          <li key={week.id}>
-            Semana {week.weekNumber} — {PHASE_LABEL[week.phase]}
-          </li>
-        ))}
-      </ol>
-      <p>
-        <Link href="/dashboard">Ir para o painel</Link>
-      </p>
+      <section aria-labelledby="periodizacao" className="stack">
+        <h2 id="periodizacao">Periodização</h2>
+        <ol className="timeline">
+          {plan.weeks.map((week) => (
+            <li key={week.id}>
+              <span className="metric-sm">Semana {week.weekNumber}</span> —{" "}
+              <span className={PHASE_CHIP[week.phase]}>{PHASE_LABEL[week.phase]}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+      <Link href="/dashboard" className="btn btn-block">
+        Ir para o painel
+      </Link>
     </main>
   );
 }

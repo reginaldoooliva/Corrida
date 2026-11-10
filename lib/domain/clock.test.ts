@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { appNow, todayInTimeZone } from "./clock";
+import { appNow, daysUntil, todayInTimeZone } from "./clock";
 import { deriveSessionStatus } from "./session-status";
 
 describe("todayInTimeZone", () => {
@@ -37,5 +37,14 @@ describe("appNow", () => {
 
   it("ignores an unparsable APP_NOW", () => {
     expect(Number.isNaN(appNow({ APP_NOW: "amanhã" }).getTime())).toBe(false);
+  });
+});
+
+describe("daysUntil", () => {
+  it("counts whole calendar days to a race, 0 on race day and negative after", () => {
+    const today = new Date("2026-11-10T00:00:00Z");
+    expect(daysUntil(new Date("2026-12-18T00:00:00Z"), today)).toBe(38);
+    expect(daysUntil(today, today)).toBe(0);
+    expect(daysUntil(new Date("2026-11-09T00:00:00Z"), today)).toBe(-1);
   });
 });

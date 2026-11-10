@@ -1,37 +1,43 @@
 import { submitRaceResult } from "./actions";
-
-const field = { display: "grid", gap: 4 } as const;
-const input = { padding: "6px 8px", fontSize: 14 } as const;
+import { FlagIcon } from "@/components/icons";
+import { SubmitButton } from "@/components/submit-button";
 
 // Spec LIFE-02: shown on the dashboard once the latest plan is archived without a RaceResult.
 export function RaceResultPrompt({ planId, error }: { planId: string; error?: string }) {
   const submitAction = submitRaceResult.bind(null, planId);
 
   return (
-    <section
-      aria-label="Aviso de resultado de prova"
-      style={{ border: "2px solid #1565c0", padding: 16, marginBottom: 16, display: "grid", gap: 12 }}
-    >
-      <p>Sua prova já passou. Informe o seu tempo final para atualizar o VDOT.</p>
+    <section aria-label="Aviso de resultado de prova" className="card card-info">
+      <div className="row" style={{ flexWrap: "nowrap", alignItems: "flex-start" }}>
+        <span className="icon-badge" style={{ background: "var(--surface-card)", color: "var(--secondary)" }}>
+          <FlagIcon />
+        </span>
+        <div className="stack" style={{ gap: 2 }}>
+          <h2>Fita de chegada!</h2>
+          <p>Sua prova já passou. Informe o seu tempo final para atualizar o VDOT.</p>
+        </div>
+      </div>
       {error && (
-        <p role="alert" style={{ color: "#b00020" }}>
+        <p role="alert" className="alert">
           {error}
         </p>
       )}
-      <form action={submitAction} style={{ display: "grid", gap: 8 }}>
-        <label style={field}>
-          Horas
-          <input name="hours" type="number" min="0" defaultValue="0" required style={input} />
-        </label>
-        <label style={field}>
-          Minutos
-          <input name="minutes" type="number" min="0" max="59" required style={input} />
-        </label>
-        <label style={field}>
-          Segundos
-          <input name="seconds" type="number" min="0" max="59" required style={input} />
-        </label>
-        <button type="submit">Salvar resultado</button>
+      <form action={submitAction} className="form">
+        <div className="field-row three">
+          <label className="field">
+            Horas
+            <input name="hours" type="number" inputMode="numeric" min="0" defaultValue="0" required />
+          </label>
+          <label className="field">
+            Minutos
+            <input name="minutes" type="number" inputMode="numeric" min="0" max="59" required />
+          </label>
+          <label className="field">
+            Segundos
+            <input name="seconds" type="number" inputMode="numeric" min="0" max="59" required />
+          </label>
+        </div>
+        <SubmitButton pendingText="Salvando...">Salvar resultado</SubmitButton>
       </form>
     </section>
   );

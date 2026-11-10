@@ -1,27 +1,20 @@
-import { PlanStatus, RaceType } from "@prisma/client";
+import { PlanStatus } from "@prisma/client";
 import Link from "next/link";
 
+import { BottomNav } from "@/components/bottom-nav";
+import { ChartIcon } from "@/components/icons";
 import { appToday } from "@/lib/domain/clock";
 import { getSeededUserId } from "@/lib/domain/auth";
 import { weeklyAdherence } from "@/lib/domain/session-status";
+import { formatFinishTime, formatIsoDay as formatDate, formatPace, RACE_LABEL } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 // Reads the plan's VdotHistory and logs on every request (HIST-01/02); never a build-time snapshot.
 export const dynamic = "force-dynamic";
 
-const main = { maxWidth: 640, margin: "6vh auto", padding: 24 } as const;
-
 const WIDTH = 360;
 const HEIGHT = 200;
 const PAD = 44;
-
-function formatDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-function formatPace(secPerKm: number): string {
-  return `${Math.floor(secPerKm / 60)}:${String(secPerKm % 60).padStart(2, "0")}/km`;
-}
 
 interface PacePoint {
   date: Date;
@@ -37,12 +30,12 @@ function PaceChart({ points }: { points: PacePoint[] }) {
   const x = (i: number) => (points.length === 1 ? WIDTH / 2 : PAD + (i / (points.length - 1)) * (WIDTH - 2 * PAD));
   const y = (sec: number) => PAD + ((sec - fast) / (slow - fast)) * (HEIGHT - 2 * PAD);
   const series = [
-    { key: "planejado", color: "#999", value: (p: PacePoint) => p.planned },
-    { key: "real", color: "#2e7d32", value: (p: PacePoint) => p.actual },
+    { key: "planejado", color: "var(--on-surface-variant)", dash: "4 4", value: (p: PacePoint) => p.planned },
+    { key: "real", color: "var(--primary)", dash: undefined, value: (p: PacePoint) => p.actual },
   ];
 
   return (
-    <svg role="img" aria-label="Pace real vs. planejado" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%">
+    <svg className="chart" role="img" aria-label="Pace real vs. planejado" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%">
       <text x={2} y={PAD} fontSize={12}>
         {formatPace(fast)}
       </text>
@@ -56,6 +49,7 @@ function PaceChart({ points }: { points: PacePoint[] }) {
             fill="none"
             stroke={s.color}
             strokeWidth={2}
+            strokeDasharray={s.dash}
           />
           {points.map((p, i) => (
             <circle key={i} cx={x(i)} cy={y(s.value(p))} r={5} fill={s.color}>
@@ -84,36 +78,22 @@ function VdotChart({ points }: { points: VdotPoint[] }) {
   const coords = points.map((p) => [x(p.date.getTime()), y(p.vdot)] as const);
 
   return (
-    <svg role="img" aria-label="VDOT ao longo do tempo" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%">
-      <line x1={PAD} y1={HEIGHT - PAD} x2={WIDTH - PAD} y2={HEIGHT - PAD} stroke="#999" />
+    <svg className="chart" role="img" aria-label="VDOT ao longo do tempo" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%">
+      <line x1={PAD} y1={HEIGHT - PAD} x2={WIDTH - PAD} y2={HEIGHT - PAD} stroke="var(--outline)" />
       <text x={2} y={PAD} fontSize={12}>
         {maxV.toFixed(0)}
       </text>
       <text x={2} y={HEIGHT - PAD} fontSize={12}>
         {minV.toFixed(0)}
       </text>
-      <polyline points={coords.map(([cx, cy]) => `${cx},${cy}`).join(" ")} fill="none" stroke="#1565c0" strokeWidth={2} />
+      <polyline points={coords.map(([cx, cy]) => `${cx},${cy}`).join(" ")} fill="none" stroke="var(--secondary)" strokeWidth={2} />
       {points.map((p, i) => (
-        <circle key={i} cx={coords[i][0]} cy={coords[i][1]} r={5} fill="#1565c0">
+        <circle key={i} cx={coords[i][0]} cy={coords[i][1]} r={5} fill="var(--secondary)">
           <title>{`${formatDate(p.date)}: VDOT ${p.vdot.toFixed(1)}`}</title>
         </circle>
       ))}
     </svg>
   );
-}
-
-const RACE_LABEL: Record<RaceType, string> = {
-  [RaceType.FIVE_K]: "5km",
-  [RaceType.TEN_K]: "10km",
-  [RaceType.HALF]: "21km",
-  [RaceType.MARATHON]: "42km",
-};
-
-function formatFinishTime(totalSec: number): string {
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = String(totalSec % 60).padStart(2, "0");
-  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
 }
 
 interface HistoryPageProps {
@@ -146,13 +126,21 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
 
   if (!plan) {
     return (
-      <main style={main}>
-        <h1>Histórico</h1>
-        <p>Nenhum plano ainda.</p>
-        <p>
-          <Link href="/plan/new">Criar um novo plano</Link>
-        </p>
-      </main>
+      <>
+        <main className="page page--nav">
+          <h1>Histórico</h1>
+          <section className="card" style={{ justifyItems: "start" }}>
+            <span className="icon-badge">
+              <ChartIcon />
+            </span>
+            <p>Nenhum plano ainda.</p>
+            <Link href="/plan/new" className="btn btn-block">
+              Criar um novo plano
+            </Link>
+          </section>
+        </main>
+        <BottomNav />
+      </>
     );
   }
 
@@ -167,48 +155,80 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
   const startedWeeks = plan.weeks.filter((w) => w.startDate <= today);
 
   return (
-    <main style={main}>
-      <h1>Histórico</h1>
-      <nav aria-label="Planos">
-        <ul>
-          {plans.map((p) => (
-            <li key={p.id}>
-              <Link href={`/history?plan=${p.id}`} aria-current={p.id === plan.id ? "page" : undefined}>
-                {RACE_LABEL[p.raceType]} - {formatDate(p.raceDate)} (
-                {p.status === PlanStatus.ACTIVE ? "atual" : "arquivado"})
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      {plan.raceResult && (
-        <p>
-          Resultado da prova: {formatFinishTime(plan.raceResult.finishTimeSec)} (VDOT{" "}
-          {plan.raceResult.vdotComputed.toFixed(1)})
-        </p>
-      )}
-      <h2>VDOT ao longo do tempo</h2>
-      <VdotChart points={plan.vdotHistory} />
-      <h2>Pace real vs. planejado</h2>
-      {/* Spec HIST-04: an explicit empty state instead of an empty chart. */}
-      {pacePoints.length > 0 ? <PaceChart points={pacePoints} /> : <p>Nenhum treino registrado neste plano ainda.</p>}
-      <h2>Aderência semanal</h2>
-      <ul aria-label="Aderência semanal">
-        {startedWeeks.map((w) => {
-          const { done, planned } = weeklyAdherence(
-            w.sessions.map((s) => ({ date: s.date, hasLog: Boolean(s.workoutLog) })),
-            today,
-          );
-          return (
-            <li key={w.id}>
-              Semana {w.weekNumber}: {done} de {planned} sessões feitas
-            </li>
-          );
-        })}
-      </ul>
-      <p>
-        <Link href="/dashboard">Voltar ao dashboard</Link>
-      </p>
-    </main>
+    <>
+      <main className="page page--nav">
+        <header className="page-header">
+          <span className="eyebrow">Sua evolução</span>
+          <h1>Histórico</h1>
+        </header>
+        <nav aria-label="Planos">
+          <ul className="plan-tabs">
+            {plans.map((p) => (
+              <li key={p.id}>
+                <Link href={`/history?plan=${p.id}`} aria-current={p.id === plan.id ? "page" : undefined}>
+                  {RACE_LABEL[p.raceType]} - {formatDate(p.raceDate)} (
+                  {p.status === PlanStatus.ACTIVE ? "atual" : "arquivado"})
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        {plan.raceResult && (
+          <section aria-label="Resultado" className="card card-hero">
+            <span className="metric-label">Fita de chegada</span>
+            <p style={{ color: "var(--on-surface)" }}>
+              Resultado da prova: <span className="metric-md">{formatFinishTime(plan.raceResult.finishTimeSec)}</span>{" "}
+              <span className="muted">(VDOT {plan.raceResult.vdotComputed.toFixed(1)})</span>
+            </p>
+          </section>
+        )}
+        <section className="card" aria-labelledby="vdot-title">
+          <h2 id="vdot-title">VDOT ao longo do tempo</h2>
+          <VdotChart points={plan.vdotHistory} />
+        </section>
+        <section className="card" aria-labelledby="pace-title">
+          <h2 id="pace-title">Pace real vs. planejado</h2>
+          {/* Spec HIST-04: an explicit empty state instead of an empty chart. */}
+          {pacePoints.length > 0 ? (
+            <>
+              <div className="legend" aria-hidden="true">
+                <span>
+                  <i style={{ background: "var(--primary)" }} /> Real
+                </span>
+                <span>
+                  <i style={{ background: "var(--on-surface-variant)" }} /> Planejado
+                </span>
+              </div>
+              <PaceChart points={pacePoints} />
+            </>
+          ) : (
+            <p>Nenhum treino registrado neste plano ainda.</p>
+          )}
+        </section>
+        <section className="card" aria-labelledby="adesao-title">
+          <h2 id="adesao-title">Aderência semanal</h2>
+          <ul aria-label="Aderência semanal" className="adherence-list">
+            {startedWeeks.map((w) => {
+              const { done, planned } = weeklyAdherence(
+                w.sessions.map((s) => ({ date: s.date, hasLog: Boolean(s.workoutLog) })),
+                today,
+              );
+              const pct = planned ? Math.round((done / planned) * 100) : 0;
+              return (
+                <li key={w.id}>
+                  <span>
+                    Semana {w.weekNumber}: {done} de {planned} sessões feitas
+                  </span>
+                  <span className="progress" aria-hidden="true">
+                    <span style={{ width: `${pct}%` }} />
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      </main>
+      <BottomNav />
+    </>
   );
 }

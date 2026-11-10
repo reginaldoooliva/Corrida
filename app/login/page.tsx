@@ -9,8 +9,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-const field = { display: "grid", gap: 4 } as const;
-const input = { padding: "8px 10px", fontSize: 16 } as const;
+import { RunIcon } from "@/components/icons";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,32 +36,34 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ maxWidth: 360, margin: "15vh auto", padding: 24 }}>
-      <h1 style={{ marginBottom: 24 }}>Entrar</h1>
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: 16 }}>
-        <label style={field}>
-          Usuário
-          <input name="username" autoComplete="username" required style={input} />
-        </label>
-        <label style={field}>
-          Senha
-          <input
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            style={input}
-          />
-        </label>
-        {error && (
-          <p role="alert" style={{ color: "#b00020", margin: 0 }}>
-            {error}
-          </p>
-        )}
-        <button type="submit" disabled={pending} style={{ padding: "10px 12px", fontSize: 16 }}>
-          {pending ? "Entrando..." : "Entrar"}
-        </button>
-      </form>
+    <main className="page page--center" style={{ maxWidth: 400 }}>
+      <header className="stack" style={{ gap: 8 }}>
+        <span className="brand">
+          <RunIcon size={28} /> Corrida
+        </span>
+        <p>Seu coach de corrida: planilha periodizada que se ajusta ao que você realmente correu.</p>
+      </header>
+      <section className="card stack-lg" style={{ padding: 24 }}>
+        <h1>Entrar</h1>
+        <form onSubmit={handleSubmit} className="form">
+          <label className="field">
+            Usuário
+            <input name="username" autoComplete="username" autoCapitalize="none" required />
+          </label>
+          <label className="field">
+            Senha
+            <input name="password" type="password" autoComplete="current-password" required />
+          </label>
+          {error && (
+            <p role="alert" className="alert">
+              {error}
+            </p>
+          )}
+          <button type="submit" disabled={pending} className="btn-block">
+            {pending ? "Entrando..." : "Entrar"}
+          </button>
+        </form>
+      </section>
     </main>
   );
 }

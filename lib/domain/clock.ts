@@ -30,3 +30,11 @@ export function appNow(env: { APP_NOW?: string; VERCEL?: string } = process.env)
 export function appToday(now: Date = appNow()): Date {
   return todayInTimeZone(now, process.env.APP_TIME_ZONE || DEFAULT_TIME_ZONE);
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Whole calendar days from `from` to `to` (both UTC-midnight days); negative once `to` is past. */
+export function daysUntil(to: Date, from: Date): number {
+  const day = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / DAY_MS;
+  return day(to) - day(from);
+}

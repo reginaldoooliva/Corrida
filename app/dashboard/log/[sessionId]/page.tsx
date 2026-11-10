@@ -1,16 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ArrowLeftIcon } from "@/components/icons";
+import { SubmitButton } from "@/components/submit-button";
+import { formatPace, formatSessionDay, SESSION_LABEL } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 import { removeWorkoutLog, submitWorkoutLog } from "./actions";
 
 // Reads the session and its log on every request.
 export const dynamic = "force-dynamic";
-
-const main = { maxWidth: 480, margin: "6vh auto", padding: 24 } as const;
-const field = { display: "grid", gap: 4 } as const;
-const input = { padding: "8px 10px", fontSize: 16 } as const;
 
 interface LogPageProps {
   params: Promise<{ sessionId: string }>;
@@ -35,41 +34,72 @@ export default async function LogPage({ params, searchParams }: LogPageProps) {
     : undefined;
 
   return (
-    <main style={main}>
-      <h1>{log ? "Editar registro" : "Registrar treino"}</h1>
-      <p>Sessão de {session.date.toISOString().slice(0, 10)}</p>
+    <main className="page" style={{ maxWidth: 480 }}>
+      <Link href="/dashboard" className="back-link">
+        <ArrowLeftIcon size={18} /> Voltar ao dashboard
+      </Link>
+      <header className="page-header">
+        <span className="eyebrow">{SESSION_LABEL[session.type]}</span>
+        <h1>{log ? "Editar registro" : "Registrar treino"}</h1>
+        <p className="muted">Sessão de {formatSessionDay(session.date)}</p>
+      </header>
+
+      <section aria-label="Treino planejado" className="metric-grid">
+        <div className="metric-box">
+          <span className="metric-label">Pace alvo</span>
+          <span className="metric-sm">{formatPace(session.plannedPaceSecPerKm)}</span>
+        </div>
+        <div className="metric-box">
+          <span className="metric-label">Distância</span>
+          <span className="metric-sm">{session.plannedDistanceKm}km</span>
+        </div>
+        <div className="metric-box">
+          <span className="metric-label">Duração</span>
+          <span className="metric-sm">{session.plannedDurationMin}min</span>
+        </div>
+      </section>
+
       {error && (
-        <p role="alert" style={{ color: "#b00020" }}>
+        <p role="alert" className="alert">
           {error}
         </p>
       )}
-      <form action={submitAction} noValidate style={{ display: "grid", gap: 12 }}>
-        <label style={field}>
+      <form action={submitAction} noValidate className="card form">
+        <label className="field">
           Pace (mm:ss por km)
-          <input name="pace" type="text" inputMode="numeric" placeholder="5:30" defaultValue={pace} style={input} />
+          <input name="pace" type="text" inputMode="numeric" placeholder="5:30" defaultValue={pace} aria-describedby="pace-hint" />
         </label>
-        <label style={field}>
-          Distância (km)
-          <input name="distanceKm" type="number" step="0.01" defaultValue={log?.actualDistanceKm} style={input} />
-        </label>
-        <label style={field}>
-          Duração (min)
-          <input name="durationMin" type="number" step="1" defaultValue={log?.actualDurationMin} style={input} />
-        </label>
-        <label style={field}>
+        <span id="pace-hint" className="hint" style={{ marginTop: -10 }}>
+          Pace médio do treino, por exemplo 5:30.
+        </span>
+        <div className="field-row">
+          <label className="field">
+            Distância (km)
+            <input name="distanceKm" type="number" inputMode="decimal" step="0.01" defaultValue={log?.actualDistanceKm} />
+          </label>
+          <label className="field">
+            Duração (min)
+            <input name="durationMin" type="number" inputMode="numeric" step="1" defaultValue={log?.actualDurationMin} />
+          </label>
+        </div>
+        <label className="field">
           RPE (1 a 10)
-          <input name="rpe" type="number" step="1" defaultValue={log?.rpe} style={input} />
+          <input name="rpe" type="number" inputMode="numeric" step="1" defaultValue={log?.rpe} aria-describedby="rpe-hint" />
         </label>
-        <button type="submit">Salvar registro</button>
+        <span id="rpe-hint" className="hint" style={{ marginTop: -10 }}>
+          Esforço percebido: 1 muito leve, 10 esforço máximo.
+        </span>
+        <SubmitButton pendingText="Salvando..." className="btn-block">
+          Salvar registro
+        </SubmitButton>
       </form>
       {log && (
-        <form action={removeAction} style={{ marginTop: 12 }}>
-          <button type="submit">Apagar registro</button>
+        <form action={removeAction}>
+          <button type="submit" className="btn-danger btn-block">
+            Apagar registro
+          </button>
         </form>
       )}
-      <p>
-        <Link href="/dashboard">Voltar ao dashboard</Link>
-      </p>
     </main>
   );
 }

@@ -115,7 +115,7 @@ try {
   for (let i = 0; i < rows; i++) {
     const row = page.locator("main ul > li").nth(i);
     const text = await row.innerText();
-    const [, mm, ss] = text.match(/Pace planejado: (\d+):(\d+)/);
+    const [, mm, ss] = text.match(/Pace planejado:\s*(\d+):(\d+)/);
     const planned = Number(mm) * 60 + Number(ss);
     const slow = Math.round(planned * 1.1); // 10% slower than target
     const km = Number(text.match(/([\d.]+)km/)[1]);
