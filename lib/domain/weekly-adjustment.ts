@@ -98,6 +98,16 @@ const toDraft = (s: Session): SessionDraft => ({
   plannedDurationMin: s.plannedDurationMin ?? 0,
 });
 
+// Spec ADJ-01/DASH-04: a week is due for reassessment once it has ended and was not reassessed yet.
+// SPEC_DEVIATION: the spec says "hoje ≥ data de fim"; `endDate` is the week's last training day, so
+// this waits until the day after it (today > endDate).
+// Reason: on its last day the week's final session (often the Longão) can still be run and logged;
+// reassessing that morning would judge the week without it and settle it for good (ADJ-06).
+export function isWeekDue(week: { endDate: Date; reassessedAt: Date | null }, today: Date): boolean {
+  const day = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  return !week.reassessedAt && day(week.endDate) < day(today);
+}
+
 // Spec ADJ-05/ADJ-06: reassess an ended week at most once. `reassessedAt` is the primary guard; the
 // unique constraint on WeeklyAdjustment.weekId backstops a concurrent duplicate (e.g. two tabs).
 // The caller passes a week that has already ended.

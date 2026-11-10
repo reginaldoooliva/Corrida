@@ -79,6 +79,7 @@ import {
   applyDecision,
   computeSignals,
   decide,
+  isWeekDue,
   reassessIfDue,
 } from "./weekly-adjustment";
 
@@ -226,6 +227,16 @@ describe("weekly-adjustment", () => {
 
       const progressed = applyDecision(decision, nextWeek(), { currentWeek, vdot: VDOT });
       expect(progressed).toEqual(nextWeek());
+    });
+  });
+
+  describe("isWeekDue", () => {
+    it("a week is due the day after its last day, not on it, and never twice", () => {
+      const endDate = new Date("2026-11-08T00:00:00Z");
+      expect(isWeekDue({ endDate, reassessedAt: null }, new Date("2026-11-07T00:00:00Z"))).toBe(false);
+      expect(isWeekDue({ endDate, reassessedAt: null }, endDate)).toBe(false);
+      expect(isWeekDue({ endDate, reassessedAt: null }, new Date("2026-11-09T00:00:00Z"))).toBe(true);
+      expect(isWeekDue({ endDate, reassessedAt: new Date() }, new Date("2026-11-20T00:00:00Z"))).toBe(false);
     });
   });
 

@@ -12,7 +12,7 @@ import { getSeededUserId } from "@/lib/domain/auth";
 import { archiveIfPast } from "@/lib/domain/plan-lifecycle";
 import { deriveSessionStatus, type SessionStatus } from "@/lib/domain/session-status";
 import { isRetestDue } from "@/lib/domain/vdot";
-import { reassessIfDue } from "@/lib/domain/weekly-adjustment";
+import { isWeekDue, reassessIfDue } from "@/lib/domain/weekly-adjustment";
 import {
   formatIsoDay,
   formatLongDay,
@@ -87,7 +87,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   // Spec DASH-04: settle every ended, not-yet-reassessed week (oldest first, so paces cascade
   // correctly even if more than one week went by unvisited) before rendering the week that follows.
   for (const week of plan.weeks) {
-    if (!week.reassessedAt && week.endDate < today) {
+    if (isWeekDue(week, today)) {
       await reassessIfDue(week.id);
     }
   }
