@@ -1,4 +1,4 @@
-import { SessionType } from "@prisma/client";
+import { Phase, SessionType } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // In-memory stand-in for the plans/weeks/sessions/logs/vdotHistory tables. A transaction works on
@@ -77,6 +77,7 @@ import {
   recomputeFuturePaces,
   recordVdotRetest,
 } from "./vdot";
+import { generateSessions } from "./plan-generator";
 
 // Reference values from Jack Daniels' published VDOT table (Daniels' Running Formula).
 const TOLERANCE = 0.1;
@@ -145,6 +146,26 @@ describe("vdot", () => {
       expect(long).toBeGreaterThan(271);
       expect(long).toBeLessThan(pace(SessionType.EASY));
       expect(long).toBeGreaterThan(pace(SessionType.TEMPO));
+
+      const types = [SessionType.EASY, SessionType.LONG, SessionType.TEMPO, SessionType.INTERVAL];
+      // A fitter runner (higher VDOT) gets a faster pace for every session type.
+      for (const type of types) {
+        const paces = [35, 50, 65].map((v) => paceForVdot(v, type).secPerKm);
+        expect(paces[0]).toBeGreaterThan(paces[1]);
+        expect(paces[1]).toBeGreaterThan(paces[2]);
+      }
+      // A generated session's distance is its planned duration run at its VDOT pace.
+      const week = { weekNumber: 1, phase: Phase.BUILD, startDate: new Date("2026-11-09T00:00:00Z") };
+      for (const vdot of [35, 65]) {
+        for (const s of generateSessions(week, [1, 3, 5, 6], vdot)) {
+          expect(s.plannedPaceSecPerKm).toBe(paceForVdot(vdot, s.type).secPerKm);
+          expect(s.plannedDistanceKm).toBeCloseTo((s.plannedDurationMin * 60) / s.plannedPaceSecPerKm, 2);
+        }
+      }
+      const easy = (vdot: number) =>
+        generateSessions(week, [1, 3, 5, 6], vdot).find((s) => s.type === SessionType.EASY)!;
+      expect(easy(65).plannedDurationMin).toBe(easy(35).plannedDurationMin);
+      expect(easy(65).plannedDistanceKm).toBeGreaterThan(easy(35).plannedDistanceKm);
     });
   });
 
