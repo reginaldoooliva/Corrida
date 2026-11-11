@@ -73,8 +73,16 @@ export function applyDecision(
   if (decision === Decision.PROGRESS) return nextWeekDraft;
 
   if (decision === Decision.MAINTAIN) {
-    // Same sessions on the same weekdays, one week later; periodization does not advance.
-    return context.currentWeek.map((s) => ({ ...s, date: new Date(s.date.getTime() + 7 * DAY_MS) }));
+    // Same sessions on the same weekdays, one week later; periodization does not advance. Spec DEL-13:
+    // matched by weekday, not by position - after a deleted session the two weeks differ in length,
+    // and each next-week session keeps its own date. One with no session on its weekday in the
+    // current week stays as generated.
+    const day = (d: Date) => Math.floor(d.getTime() / DAY_MS);
+    const current = new Map(context.currentWeek.map((s) => [day(s.date) + 7, s]));
+    return nextWeekDraft.map((n) => {
+      const c = current.get(day(n.date));
+      return c ? { ...c, date: n.date } : n;
+    });
   }
 
   return nextWeekDraft.map((s) => {

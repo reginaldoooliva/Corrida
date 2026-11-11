@@ -221,6 +221,25 @@ describe("weekly-adjustment", () => {
       expect(maintained.map((s) => s.type)).not.toEqual(draft.map((s) => s.type));
     });
 
+    it("maintain matches sessions by weekday when either week has a deleted session", () => {
+      // DAYS are Mon/Wed/Fri/Sat. The next week lost its Wednesday; the current week its Monday.
+      const draft = nextWeek().filter((s) => s.date.getUTCDay() !== 3);
+      const current = currentWeek.filter((s) => s.date.getUTCDay() !== 1);
+
+      const maintained = applyDecision(Decision.MAINTAIN, draft, { currentWeek: current, vdot: VDOT });
+
+      // Every next-week session stays on its own day.
+      expect(maintained.map((s) => s.date)).toEqual(draft.map((s) => s.date));
+      // Friday and Saturday take the current week's Friday and Saturday sessions.
+      for (const weekday of [5, 6]) {
+        const m = maintained.find((s) => s.date.getUTCDay() === weekday)!;
+        const c = current.find((s) => s.date.getUTCDay() === weekday)!;
+        expect({ ...m, date: c.date }).toEqual(c);
+      }
+      // Monday has no current-week session to copy and stays as generated.
+      expect(maintained.find((s) => s.date.getUTCDay() === 1)).toEqual(draft.find((s) => s.date.getUTCDay() === 1));
+    });
+
     it("decide returns progress and leaves the next week as originally generated", () => {
       const decision = decide({ paceDeviation: false, rpe: false, missed: false });
       expect(decision).toBe(Decision.PROGRESS);

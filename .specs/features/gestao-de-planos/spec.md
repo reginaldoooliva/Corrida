@@ -143,6 +143,11 @@ conte contra mim no ajuste semanal.
    mostrar "A semana precisa de pelo menos um treino." `DEL-10`
 5. WHEN a confirmação de "Excluir plano" ou de "Excluir treino" abre THEN the system SHALL mostrá-la
    centralizada na tela, inteira dentro dela, numa tela de 390px de largura. `DEL-11`
+6. WHEN o plano é recalculado (nova data da prova ou novos dias) THEN the system SHALL não recriar
+   um treino excluído: o dia dele continua sem treino naquela semana. `DEL-12`
+7. WHEN a reavaliação mantém a carga (`maintain`) e a semana avaliada ou a seguinte tem um treino
+   excluído THEN the system SHALL manter cada treino da semana seguinte no seu próprio dia, com o
+   treino do mesmo dia da semana avaliada. `DEL-13`
 
 **Independent Test**: Numa semana com 4 treinos, excluir um não registrado, deixar a semana
 terminar com os outros 3 registrados, e ver que o sinal de treinos perdidos fica falso.
@@ -259,6 +264,8 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | DEL-09 | P1: Excluir um treino | T7 | Done |
 | DEL-10 | P1: Excluir um treino | T17 | Done |
 | DEL-11 | P1: Excluir um treino | T20 | Done |
+| DEL-12 | P1: Excluir um treino | T23 | Pending |
+| DEL-13 | P1: Excluir um treino | T22 | Done |
 | RECALC-01 | P1: Recalcular o plano todo | T15 | Done |
 | RECALC-02 | P1: Recalcular o plano todo | T8 | Done |
 | RECALC-03 | P1: Recalcular o plano todo | T8 | Done |

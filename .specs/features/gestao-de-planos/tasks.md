@@ -68,7 +68,7 @@ T10 → T11 → T12 → T13
 ### Phase 4: Existing screens
 
 ```
-T14 → T15 → T16 → T17 → T18 → T19 → T20 → T21
+T14 → T15 → T16 → T17 → T18 → T19 → T20 → T21 → T22 → T23
 ```
 
 ---
@@ -476,6 +476,44 @@ T14 → T15 → T16 → T17 → T18 → T19 → T20 → T21
 
 ---
 
+### T22: Maintain a week by weekday, not by position
+
+**What**: `applyDecision`'s `maintain` copies each current-week session onto the next-week session of the same weekday, keeping the next week's dates. Found by the Verifier: after a deleted session the two weeks differ in length, and the copy by position moved a session to another day.
+**Where**: `lib/domain/weekly-adjustment.ts`
+**Depends on**: T21
+**Reuses**: `applyDecision`
+**Requirement**: DEL-13
+
+**Done when**:
+
+- [x] Unit: with a deleted session in either week, every next-week session keeps its date and takes the current-week session of its weekday; one with no match stays as generated
+- [x] Gate check passes: `npx vitest run lib/domain`
+
+**Tests**: unit
+**Gate**: quick
+**Commit**: `fix(adjust): maintain a week by weekday, not by position`
+
+---
+
+### T23: Keep a deleted session deleted when the plan is rebuilt
+
+**What**: `rebuildWeeks` drafts no session on a day of the plan's days that had none before the rebuild - a deleted one - in a week laid out on those days. Found by the Verifier: a new race date or new days brought a deleted session back, and the reassessment then counted it as missed.
+**Where**: `lib/domain/plan-lifecycle.ts`
+**Depends on**: T22
+**Reuses**: `rebuildWeeks`, `deleteSession`
+**Requirement**: DEL-12
+
+**Done when**:
+
+- [ ] Unit: a session deleted in the current week and one in a future week stay deleted after a new race date and after new days; the new days are still added; the week's reassessment does not count the deleted one as missed
+- [ ] Gate check passes: `npx vitest run lib/domain`
+
+**Tests**: unit
+**Gate**: quick
+**Commit**: `fix(recalc): keep a deleted session deleted when the plan is rebuilt`
+
+---
+
 ## Checks
 
 **Run unit**: `npx vitest run lib/domain --reporter=verbose`
@@ -590,6 +628,15 @@ Proof: run e2e | ok delete.spec.ts › the delete confirmation sits centered and
 **C36** - With three plans the history fits a 390px screen and its plan tabs scroll on their own (PLANS-15, AC 13)
 Proof: run e2e | ok plans.spec.ts › with three plans the history fits a phone screen and its plan tabs scroll
 
+**C37** - A new race date or new days never bring back a deleted session (DEL-12, AC 6)
+Proof: run unit | ✓ plan-lifecycle > editPlan never brings back a deleted session, with a new race date or new days
+
+**C38** - A maintained week keeps each next-week session on its own day when a session was deleted (DEL-13, AC 7)
+Proof: run unit | ✓ weekly-adjustment > maintain matches sessions by weekday when either week has a deleted session
+
+**C39** - The 500-character limit counts characters, not UTF-16 units: 500 emoji or decomposed accents are accepted, 501 refused (NOTE-02, AC 2)
+Proof: run unit | ✓ workout-log > parseNotes counts characters, not UTF-16 units: emoji and decomposed accents count as one
+
 ---
 
 ## Handoff
@@ -610,7 +657,7 @@ Phase 1 → Phase 2 → Phase 3 → Phase 4
 Phase 1 (Data model):        T1
 Phase 2 (Domain):            T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9
 Phase 3 (Plans screen):      T10 → T11 → T12 → T13
-Phase 4 (Existing screens):  T14 → T15 → T16 → T17 → T18 → T19 → T20 → T21
+Phase 4 (Existing screens):  T14 → T15 → T16 → T17 → T18 → T19 → T20 → T21 → T22 → T23
 ```
 
 Execution is strictly sequential - a single agent works one task at a time, in order.
