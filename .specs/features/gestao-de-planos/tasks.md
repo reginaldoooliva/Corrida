@@ -124,9 +124,9 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] `createPlan` in `lib/domain/plan-generator.ts` pauses the ACTIVE plan inside its transaction
-- [ ] The LIFE-06 test is rewritten for PLANS-04 (AD-005)
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] `createPlan` in `lib/domain/plan-generator.ts` pauses the ACTIVE plan inside its transaction
+- [x] The LIFE-06 test is rewritten for PLANS-04 (AD-005)
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
 
 **Tests**: unit
 **Gate**: quick

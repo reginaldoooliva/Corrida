@@ -87,6 +87,7 @@ const { db, emptyStore, modelsFor } = vi.hoisted(() => {
           const plan = store.plans.find(matches(where));
           return plan ? clone(plan) : null;
         },
+        count: async ({ where }: { where: Row }) => store.plans.filter(matches(where)).length,
         updateMany: async ({ where, data }: { where: Row; data: Row }) => {
           const hit = store.plans.filter(matches(where));
           for (const plan of hit) Object.assign(plan, data);
@@ -190,12 +191,14 @@ vi.mock("@/lib/prisma", () => ({
 
 import { createPlan, splitPhases, type Weekday } from "./plan-generator";
 import {
-  ActivePlanExistsError,
   archiveIfPast,
   archivePastPlans,
   createNewPlan,
   initialVdotForNewPlan,
   isPlausibleRaceTime,
+  PLAN_LIMIT_ERROR,
+  PlanConflictError,
+  PlanLimitError,
   recalculateFromCurrentWeek,
   recordRaceResult,
 } from "./plan-lifecycle";
@@ -372,27 +375,59 @@ describe("plan-lifecycle", () => {
       today: TODAY,
     };
 
-    it("createNewPlan rejects a second active plan while one already exists", async () => {
-      const existing = seedPlan({ status: PlanStatus.ACTIVE });
-      const before = structuredClone(db);
+    // Spec PLANS-04 (AD-005 replaces LIFE-06, which refused a second plan while one was active).
+    it("createNewPlan makes the new plan active and the previous one paused", async () => {
+      const previous = seedPlan({ status: PlanStatus.ACTIVE });
 
-      const attempt = createNewPlan(input);
+      const { plan } = await createNewPlan(input);
 
-      await expect(attempt).rejects.toBeInstanceOf(ActivePlanExistsError);
-      await expect(attempt).rejects.toThrow(/já tem um plano ativo/);
-      expect(db).toEqual(before);
-      expect(db.plans).toEqual([existing]);
+      expect(db.plans.map((p) => [p.id, p.status])).toEqual([
+        [previous.id, PlanStatus.PAUSED],
+        [plan.id, PlanStatus.ACTIVE],
+      ]);
     });
 
-    it("createNewPlan reports a concurrent second plan (unique index, P2002) as an active plan conflict", async () => {
+    it("createPlan pauses the active plan so at most one stays active", async () => {
+      seedPlan({ status: PlanStatus.ACTIVE });
+      seedPlan({ status: PlanStatus.PAUSED });
+      const otherUsers = seedPlan({ status: PlanStatus.ACTIVE, userId: "user-2" });
+
+      const { plan } = await createPlan(input);
+
+      const active = db.plans.filter((p) => p.userId === "user-1" && p.status === PlanStatus.ACTIVE);
+      expect(active.map((p) => p.id)).toEqual([plan.id]);
+      expect(db.plans.filter((p) => p.status === PlanStatus.PAUSED)).toHaveLength(2);
+      expect(db.plans.find((p) => p.id === otherUsers.id)?.status).toBe(PlanStatus.ACTIVE);
+    });
+
+    it("createNewPlan counts only active and paused plans toward the limit of 3", async () => {
+      seedPlan({ status: PlanStatus.ACTIVE });
+      seedPlan({ status: PlanStatus.PAUSED });
+      seedPlan({ status: PlanStatus.ARCHIVED });
+      seedPlan({ status: PlanStatus.ARCHIVED });
+      seedPlan({ status: PlanStatus.PAUSED, userId: "user-2" });
+
+      // Two kept plans (archived ones and another user's do not count): a third is allowed.
+      const { plan: third } = await createNewPlan(input);
+      expect(db.plans.find((p) => p.id === third.id)?.status).toBe(PlanStatus.ACTIVE);
+
+      // Three kept plans now: a fourth is refused with the PLANS-03 text and nothing is written.
+      const before = structuredClone(db);
+      const attempt = createNewPlan(input);
+      await expect(attempt).rejects.toBeInstanceOf(PlanLimitError);
+      await expect(attempt).rejects.toThrow("Você já tem 3 planos. Exclua um para criar outro.");
+      expect(PLAN_LIMIT_ERROR).toBe("Você já tem 3 planos. Exclua um para criar outro.");
+      expect(db).toEqual(before);
+    });
+
+    it("createNewPlan reports a concurrent second active plan (unique index, P2002) as a plan conflict", async () => {
       vi.spyOn(prisma, "$transaction").mockRejectedValueOnce(
         Object.assign(new Error("Unique constraint failed on the fields: (`userId`)"), { code: "P2002" }),
       );
 
       const attempt = createNewPlan(input);
 
-      await expect(attempt).rejects.toBeInstanceOf(ActivePlanExistsError);
-      await expect(attempt).rejects.toThrow(/já tem um plano ativo/);
+      await expect(attempt).rejects.toBeInstanceOf(PlanConflictError);
     });
 
     it("createNewPlan creates the plan when no plan is active", async () => {

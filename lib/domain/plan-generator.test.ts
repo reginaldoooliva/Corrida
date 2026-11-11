@@ -15,6 +15,8 @@ const { db, failWeekCreateOnCall, modelsWritingTo } = vi.hoisted(() => {
     let weekCalls = 0;
     return {
       plan: {
+        // No plan exists before createPlan in these tests, so pausing the active one touches nothing.
+        updateMany: async () => ({ count: 0 }),
         create: async ({ data }: { data: Row }) => {
           const row = { id: `plan-${store.plans.length + 1}`, ...data };
           store.plans.push(row);

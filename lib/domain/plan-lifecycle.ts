@@ -86,15 +86,28 @@ export async function initialVdotForNewPlan(previousPlanId?: string): Promise<nu
   return plan.raceResult?.vdotComputed ?? plan.currentVdot;
 }
 
-export class ActivePlanExistsError extends Error {
+export const PLAN_LIMIT = 3;
+export const PLAN_LIMIT_ERROR = "Você já tem 3 planos. Exclua um para criar outro.";
+
+// Spec PLANS-03: a fourth active-or-paused plan is refused.
+export class PlanLimitError extends Error {
   constructor() {
-    super("Você já tem um plano ativo. Ele precisa terminar antes de começar outro.");
-    this.name = "ActivePlanExistsError";
+    super(PLAN_LIMIT_ERROR);
+    this.name = "PlanLimitError";
   }
 }
 
-// Spec LIFE-06: at most one active plan per user. The partial unique index on Plan(userId)
-// WHERE status = 'ACTIVE' is the database-level backstop for a concurrent attempt.
+// Spec PLANS-13: two requests racing to make different plans active. The partial unique index on
+// Plan(userId) WHERE status = 'ACTIVE' rejects the second (P2002); it gets this error.
+export class PlanConflictError extends Error {
+  constructor() {
+    super("Seus planos mudaram em outro pedido. Tente de novo.");
+    this.name = "PlanConflictError";
+  }
+}
+
+const isUniqueViolation = (error: unknown) => (error as { code?: unknown })?.code === "P2002";
+
 // Spec LIFE-04/05: the VDOT a new plan defaults to - the latest archived plan's carry-over (T21) -
 // and the source it is recorded under if the user keeps it: RACE when it comes from that plan's
 // race result, RECALC when it is the plan's last currentVdot. Null when no plan was archived yet.
@@ -120,17 +133,17 @@ export async function createPlanFromCarryOver(
   return createNewPlan({ ...input, vdotSource: kept ? carried.source : VdotSource.MANUAL });
 }
 
+// Spec PLANS-01/03/04 (AD-005, replacing LIFE-06): up to 3 active-or-paused plans; archived plans
+// never count. createPlan pauses the plan followed until now.
 export async function createNewPlan(input: CreatePlanInput): ReturnType<typeof createPlan> {
-  const active = await prisma.plan.findFirst({
-    where: { userId: input.userId, status: PlanStatus.ACTIVE },
+  const kept = await prisma.plan.count({
+    where: { userId: input.userId, status: { in: KEPT_STATUSES } },
   });
-  if (active) throw new ActivePlanExistsError();
+  if (kept >= PLAN_LIMIT) throw new PlanLimitError();
   try {
     return await createPlan(input);
   } catch (error) {
-    // Two submits racing past the check above: the partial unique index rejects the second
-    // (P2002). It means the same thing as the check, so the user gets the same message (T42).
-    if ((error as { code?: unknown })?.code === "P2002") throw new ActivePlanExistsError();
+    if (isUniqueViolation(error)) throw new PlanConflictError();
     throw error;
   }
 }

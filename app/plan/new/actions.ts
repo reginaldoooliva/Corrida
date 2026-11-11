@@ -7,7 +7,7 @@ import { z } from "zod";
 import { appToday } from "@/lib/domain/clock";
 import { getSeededUserId } from "@/lib/domain/auth";
 import type { Weekday } from "@/lib/domain/plan-generator";
-import { ActivePlanExistsError, createNewPlan, createPlanFromCarryOver } from "@/lib/domain/plan-lifecycle";
+import { createNewPlan, createPlanFromCarryOver } from "@/lib/domain/plan-lifecycle";
 
 export interface EstablishedVdot {
   distanceKm: number;
@@ -32,7 +32,7 @@ function backToForm(vdotResult: EstablishedVdot, error: string): never {
 }
 
 // Spec PLAN-01..04: creates the plan from the race config plus the VDOT result T26 established.
-// Nothing was persisted until now; createNewPlan (T22) is the single write, guarded by LIFE-06.
+// Nothing was persisted until now; createNewPlan (T22) is the single write, guarded by the 3-plan limit (PLANS-03).
 export async function createPlanAction(
   vdotResult: EstablishedVdot,
   formData: FormData,
@@ -62,7 +62,6 @@ export async function createPlanAction(
     });
     createdPlanId = plan.id;
   } catch (error) {
-    if (error instanceof ActivePlanExistsError) backToForm(vdotResult, error.message);
     backToForm(vdotResult, error instanceof Error ? error.message : "Não foi possível criar o plano.");
   }
 

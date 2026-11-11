@@ -1,4 +1,4 @@
-import { Phase, RaceType, SessionType, VdotSource, type Plan } from "@prisma/client";
+import { Phase, PlanStatus, RaceType, SessionType, VdotSource, type Plan } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 
@@ -182,6 +182,12 @@ export async function createPlan(
   // exercise this against the real DB, not vitest's mocked prisma) hit "Transaction already
   // closed" at exactly that threshold.
   const plan = await prisma.$transaction(async (tx) => {
+    // Spec PLANS-02/04: the new plan is the one followed; the one followed until now is paused, in
+    // the same transaction, so a failed creation leaves it active.
+    await tx.plan.updateMany({
+      where: { userId, status: PlanStatus.ACTIVE },
+      data: { status: PlanStatus.PAUSED },
+    });
     const plan = await tx.plan.create({
       data: {
         userId,

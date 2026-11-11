@@ -229,10 +229,10 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| PLANS-01 | P1: Até 3 planos | Design | Pending |
-| PLANS-02 | P1: Até 3 planos | Design | Pending |
+| PLANS-01 | P1: Até 3 planos | T3 | Done |
+| PLANS-02 | P1: Até 3 planos | T3 | Done |
 | PLANS-03 | P1: Até 3 planos | Design | Pending |
-| PLANS-04 | P1: Até 3 planos | Design | Pending |
+| PLANS-04 | P1: Até 3 planos | T3 | Done |
 | PLANS-05 | P1: Até 3 planos | Design | Pending |
 | PLANS-06 | P1: Até 3 planos | Design | Pending |
 | PLANS-07 | P1: Até 3 planos | Design | Pending |
