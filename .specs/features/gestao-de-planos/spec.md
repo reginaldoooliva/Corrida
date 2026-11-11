@@ -243,9 +243,9 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | PLANS-12 | P1: Até 3 planos | Design | Pending |
 | PLANS-13 | Edge Cases | T4 | Done |
 | PLANS-14 | Edge Cases | Design | Pending |
-| DEL-01 | P1: Excluir um plano | Design | Pending |
-| DEL-02 | P1: Excluir um plano | Design | Pending |
-| DEL-03 | P1: Excluir um plano | Design | Pending |
+| DEL-01 | P1: Excluir um plano | T12 | Done |
+| DEL-02 | P1: Excluir um plano | T12 | Done |
+| DEL-03 | P1: Excluir um plano | T12 | Done |
 | DEL-04 | P1: Excluir um plano | T6 | Done |
 | DEL-05 | P1: Excluir um plano | Design | Pending |
 | DEL-06 | P1: Excluir um plano | Design | Pending |

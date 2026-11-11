@@ -296,8 +296,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] `e2e/delete.spec.ts`: the exact DEL-01 text, cancel keeps everything, confirm leaves no row of the plan
-- [ ] Gate check passes: full gate with `e2e/delete.spec.ts`
+- [x] `e2e/delete.spec.ts`: the exact DEL-01 text, cancel keeps everything, confirm leaves no row of the plan
+- [x] Gate check passes: full gate with `e2e/delete.spec.ts`
 
 **Tests**: e2e
 **Gate**: full

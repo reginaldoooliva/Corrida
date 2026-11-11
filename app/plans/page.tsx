@@ -2,14 +2,15 @@ import { PlanStatus } from "@prisma/client";
 import Link from "next/link";
 
 import { BottomNav } from "@/components/bottom-nav";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SubmitButton } from "@/components/submit-button";
 import { FlagIcon } from "@/components/icons";
 import { appToday } from "@/lib/domain/clock";
 import { getSeededUserId } from "@/lib/domain/auth";
 import { listPlans } from "@/lib/domain/plan-lifecycle";
-import { formatLongDay, RACE_LABEL, RACE_NAME } from "@/lib/format";
+import { deletePlanMessage, formatLongDay, RACE_LABEL, RACE_NAME } from "@/lib/format";
 
-import { followPlanAction } from "./actions";
+import { deletePlanAction, followPlanAction } from "./actions";
 
 // Reads the plans on every request, archiving the ones whose race has passed (PLANS-10).
 export const dynamic = "force-dynamic";
@@ -75,6 +76,13 @@ export default async function PlansPage({ searchParams }: PlansPageProps) {
                       </SubmitButton>
                     </form>
                   )}
+                  {/* Spec DEL-01/05: every plan here can be deleted, after confirmation. */}
+                  <ConfirmDialog
+                    label="Excluir plano"
+                    message={deletePlanMessage(plan.raceType)}
+                    action={deletePlanAction}
+                    fields={{ planId: plan.id, from: "/plans" }}
+                  />
                 </li>
               );
             })}

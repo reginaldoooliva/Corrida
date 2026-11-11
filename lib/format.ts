@@ -69,3 +69,8 @@ export function formatFinishTime(totalSec: number): string {
   const s = String(totalSec % 60).padStart(2, "0");
   return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
 }
+
+/** Spec DEL-01: the confirmation asked before a plan is deleted. */
+export function deletePlanMessage(raceType: RaceType): string {
+  return `Excluir o plano de ${RACE_NAME[raceType]}? Todas as semanas, treinos e registros dele serão apagados. Isso não pode ser desfeito.`;
+}

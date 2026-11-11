@@ -661,6 +661,35 @@ legend {
   color: var(--on-surface-variant);
 }
 
+/* Confirmation of a destructive action (ConfirmDialog): a centered card over a dimmed page, as wide
+   as a phone allows. */
+.dialog {
+  width: min(360px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  color: var(--on-surface);
+  box-shadow: var(--shadow);
+}
+
+.dialog[open] {
+  display: grid;
+  gap: 16px;
+}
+
+.dialog::backdrop {
+  background: rgb(15 23 42 / 0.55);
+}
+
+.dialog form {
+  flex-wrap: nowrap;
+}
+
+.dialog form button {
+  flex: 1;
+}
+
 .alert {
   display: flex;
   gap: 8px;
