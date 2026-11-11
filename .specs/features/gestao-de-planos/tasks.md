@@ -410,8 +410,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] `e2e/notes.spec.ts`: saved, refused over 500, shown when editing; `e2e/logging.spec.ts` still passes
-- [ ] Gate check passes: full gate with `e2e/notes.spec.ts e2e/logging.spec.ts`
+- [x] `e2e/notes.spec.ts`: saved, refused over 500, shown when editing; `e2e/logging.spec.ts` still passes
+- [x] Gate check passes: full gate with `e2e/notes.spec.ts e2e/logging.spec.ts`
 
 **Tests**: e2e
 **Gate**: full

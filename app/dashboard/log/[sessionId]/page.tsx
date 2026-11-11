@@ -89,6 +89,15 @@ export default async function LogPage({ params, searchParams }: LogPageProps) {
           </label>
         </div>
         <RpePicker defaultValue={log?.rpe} />
+        {/* Spec NOTE-01/04: an optional note, pre-filled when editing. Its 500-character limit is
+            checked on save (NOTE-02), so a longer paste gets the error instead of being cut. */}
+        <label className="field">
+          Observação (opcional)
+          <textarea name="notes" rows={3} defaultValue={log?.notes ?? ""} aria-describedby="notes-hint" />
+        </label>
+        <span id="notes-hint" className="hint" style={{ marginTop: -10 }}>
+          Como foi o treino, até 500 caracteres.
+        </span>
         <SubmitButton pendingText="Salvando..." className="btn-block">
           Salvar registro
         </SubmitButton>

@@ -57,12 +57,20 @@ export async function submitWorkoutLog(sessionId: string, formData: FormData): P
     redirect(`/dashboard/log/${sessionId}?error=${encodeURIComponent(message)}`);
   }
 
-  await saveWorkoutLog(sessionId, {
-    actualPaceSecPerKm: parsed.data.pace,
-    actualDistanceKm: parsed.data.distanceKm,
-    actualDurationMin: parsed.data.durationMin,
-    rpe: parsed.data.rpe,
-  });
+  // Spec NOTE-01..03: the note goes as typed; saveWorkoutLog trims it and refuses one over 500.
+  const notes = z.string().nullable().catch(null).parse(formData.get("notes"));
+  try {
+    await saveWorkoutLog(sessionId, {
+      actualPaceSecPerKm: parsed.data.pace,
+      actualDistanceKm: parsed.data.distanceKm,
+      actualDurationMin: parsed.data.durationMin,
+      rpe: parsed.data.rpe,
+      notes,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Não foi possível salvar o registro.";
+    redirect(`/dashboard/log/${sessionId}?error=${encodeURIComponent(message)}`);
+  }
 
   revalidatePath("/dashboard");
   redirect("/dashboard");

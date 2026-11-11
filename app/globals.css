@@ -213,7 +213,8 @@ input[type="text"],
 input[type="number"],
 input[type="date"],
 input[type="password"],
-input:not([type]) {
+input:not([type]),
+textarea {
   width: 100%;
   min-height: 48px;
   padding: 10px 14px;
@@ -230,7 +231,12 @@ input[inputmode="numeric"] {
   font-family: var(--font-metric);
 }
 
-input:focus-visible {
+textarea {
+  resize: vertical;
+}
+
+input:focus-visible,
+textarea:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 0;
   border-color: var(--primary);
