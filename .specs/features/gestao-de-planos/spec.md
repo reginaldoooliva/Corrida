@@ -236,10 +236,10 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | PLANS-05 | P1: Até 3 planos | T10 | Done |
 | PLANS-06 | P1: Até 3 planos | T11 | Done |
 | PLANS-07 | P1: Até 3 planos | T11 | Done |
-| PLANS-08 | P1: Até 3 planos | Design | Pending |
+| PLANS-08 | P1: Até 3 planos | T14 | Done |
 | PLANS-09 | P1: Até 3 planos | T4 | Done |
-| PLANS-10 | P1: Até 3 planos | Design | Pending |
-| PLANS-11 | P1: Até 3 planos | Design | Pending |
+| PLANS-10 | P1: Até 3 planos | T14 | Done |
+| PLANS-11 | P1: Até 3 planos | T14 | Done |
 | PLANS-12 | P1: Até 3 planos | Design | Pending |
 | PLANS-13 | Edge Cases | T4 | Done |
 | PLANS-14 | Edge Cases | Design | Pending |

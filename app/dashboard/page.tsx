@@ -9,7 +9,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { CheckIcon, ClockIcon, FlagIcon, PencilIcon, RunIcon, XIcon } from "@/components/icons";
 import { appToday, daysUntil } from "@/lib/domain/clock";
 import { getSeededUserId } from "@/lib/domain/auth";
-import { archiveIfPast } from "@/lib/domain/plan-lifecycle";
+import { archivePastPlans } from "@/lib/domain/plan-lifecycle";
 import { deriveSessionStatus, type SessionStatus } from "@/lib/domain/session-status";
 import { isRetestDue } from "@/lib/domain/vdot";
 import { isWeekDue, reassessIfDue } from "@/lib/domain/weekly-adjustment";
@@ -47,9 +47,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const userId = await getSeededUserId();
   const today = appToday();
 
-  // Spec LIFE-01: once its race date has passed, the active plan is archived before anything renders.
-  const active = await prisma.plan.findFirst({ where: { userId, status: PlanStatus.ACTIVE } });
-  if (active) await archiveIfPast(active.id, today);
+  // Spec LIFE-01 / PLANS-10: once its race date has passed, a plan - followed or paused - is
+  // archived before anything renders.
+  await archivePastPlans(userId, today);
 
   const plan = await prisma.plan.findFirst({
     where: { userId, status: PlanStatus.ACTIVE },
@@ -64,6 +64,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       include: { raceResult: true },
     });
     const askForResult = latest?.status === PlanStatus.ARCHIVED && !latest.raceResult;
+    // Spec PLANS-11: with paused plans kept, the empty state points to the plans screen.
+    const hasPaused = (await prisma.plan.count({ where: { userId, status: PlanStatus.PAUSED } })) > 0;
     return (
       <>
         <main className="page page--nav">
@@ -74,7 +76,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </span>
             <h1>Nenhum plano ativo</h1>
             <p>Escolha sua próxima prova-alvo e o coach monta a planilha semana a semana.</p>
-            <Link href="/plan/new" className="btn btn-block">
+            {hasPaused && (
+              <Link href="/plans" className="btn btn-block">
+                Ver meus planos
+              </Link>
+            )}
+            <Link href="/plan/new" className={hasPaused ? "btn btn-secondary btn-block" : "btn btn-block"}>
               Criar um novo plano
             </Link>
           </section>

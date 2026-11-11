@@ -334,8 +334,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] e2e: paused plan not reassessed and no retest banner for it; past paused plan archived; empty state link
-- [ ] Gate check passes: full gate with `e2e/plans.spec.ts`
+- [x] e2e: paused plan not reassessed and no retest banner for it; past paused plan archived; empty state link
+- [x] Gate check passes: full gate with `e2e/plans.spec.ts`
 
 **Tests**: e2e
 **Gate**: full

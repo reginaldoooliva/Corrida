@@ -1,7 +1,8 @@
 import { PlanStatus, RaceType } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
-import { getSeededUserId, login, resetPlans, seedActivePlan } from "./helpers";
+import { backdateLatestVdot, getSeededUserId, login, resetPlans, seedActivePlan } from "./helpers";
+import { appToday } from "../lib/domain/clock";
 import { formatLongDay } from "../lib/format";
 import { prisma } from "../lib/prisma";
 
@@ -123,5 +124,57 @@ test("a fourth plan is refused with the 3-plan message", async ({ page }) => {
   await expect(page.locator("main").getByRole("alert")).toHaveText("Você já tem 3 planos. Exclua um para criar outro.");
   // Nothing was created and no plan changed status.
   expect(await prisma.plan.findMany({ where: { userId }, orderBy: { id: "asc" } })).toEqual(before);
+});
+
+test("the dashboard never reassesses or prompts a retest for a paused plan", async ({ page }) => {
+  test.setTimeout(120000);
+  const userId = await getSeededUserId();
+  // The 10K's week 1 has ended and its VDOT is 30 days old: due for both, were it followed.
+  const { planId: paused } = await seedActivePlan(userId, { daysAgo: 10 });
+  await backdateLatestVdot(paused, 30);
+  await seedActivePlan(userId, { daysAgo: 0, raceInDays: 120, raceType: RaceType.HALF });
+
+  await page.goto("/dashboard");
+
+  await expect(page.getByRole("region", { name: "Próxima prova" })).toContainText("Meia maratona");
+  await expect(page.getByRole("region", { name: "Aviso de reteste de VDOT" })).toHaveCount(0);
+  const weeks = await prisma.week.findMany({ where: { planId: paused }, include: { weeklyAdjustment: true } });
+  expect(weeks.every((w) => w.reassessedAt === null && w.weeklyAdjustment === null)).toBe(true);
+  expect((await prisma.plan.findUniqueOrThrow({ where: { id: paused } })).status).toBe(PlanStatus.PAUSED);
+});
+
+test("opening the plans screen or the dashboard archives a paused plan whose race has passed", async ({ page }) => {
+  test.setTimeout(120000);
+  const userId = await getSeededUserId();
+  const { planId: first } = await seedActivePlan(userId, { raceInDays: 70 });
+  const { planId: second } = await seedActivePlan(userId, { raceInDays: 90 });
+  await seedActivePlan(userId, { raceInDays: 120, raceType: RaceType.HALF });
+  const yesterday = new Date(appToday().getTime() - 86400000);
+  const statusOf = async (id: string) => (await prisma.plan.findUniqueOrThrow({ where: { id } })).status;
+
+  // The plans screen archives a paused plan whose race was yesterday, and stops listing it.
+  await prisma.plan.update({ where: { id: first }, data: { raceDate: yesterday } });
+  await page.goto("/plans");
+  await expect(page.getByRole("list", { name: "Seus planos" }).getByRole("listitem")).toHaveCount(2);
+  expect(await statusOf(first)).toBe(PlanStatus.ARCHIVED);
+  expect(await statusOf(second)).toBe(PlanStatus.PAUSED);
+
+  // So does the dashboard.
+  await prisma.plan.update({ where: { id: second }, data: { raceDate: yesterday } });
+  await page.goto("/dashboard");
+  await expect(page.getByRole("region", { name: "Próxima prova" })).toContainText("Meia maratona");
+  expect(await statusOf(second)).toBe(PlanStatus.ARCHIVED);
+});
+
+test("with only paused plans the dashboard shows the empty state linking to the plans screen", async ({ page }) => {
+  const userId = await getSeededUserId();
+  const { planId } = await seedActivePlan(userId);
+  await prisma.plan.update({ where: { id: planId }, data: { status: PlanStatus.PAUSED } });
+
+  await page.goto("/dashboard");
+
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Nenhum plano ativo");
+  await expect(page.getByRole("link", { name: "Ver meus planos" })).toHaveAttribute("href", "/plans");
+  await expect(page.getByRole("link", { name: "Criar um novo plano" })).toHaveAttribute("href", "/plan/new");
 });
 
