@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { getSeededUserId } from "@/lib/domain/auth";
+import { deleteSession } from "@/lib/domain/plan-lifecycle";
 import { deleteWorkoutLog, saveWorkoutLog } from "@/lib/domain/workout-log";
 
 // Spec LOG-02 bounds. Each field's message names the field, so the form can say which one is
@@ -69,6 +71,19 @@ export async function submitWorkoutLog(sessionId: string, formData: FormData): P
 // Spec LOG-04/05: delete the session's log, whatever its week's reassessment state.
 export async function removeWorkoutLog(sessionId: string): Promise<void> {
   await deleteWorkoutLog(sessionId);
+  revalidatePath("/dashboard");
+  redirect("/dashboard");
+}
+
+// Spec DEL-08/10: delete the session, with its log, from the followed plan; the domain refuses the
+// week's last session and any session that is not the user's followed plan's.
+export async function deleteSessionAction(sessionId: string): Promise<void> {
+  try {
+    await deleteSession(await getSeededUserId(), sessionId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Não foi possível excluir o treino.";
+    redirect(`/dashboard/log/${sessionId}?error=${encodeURIComponent(message)}`);
+  }
   revalidatePath("/dashboard");
   redirect("/dashboard");
 }

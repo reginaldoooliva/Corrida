@@ -1,13 +1,15 @@
+import { PlanStatus } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ArrowLeftIcon } from "@/components/icons";
 import { RpePicker } from "@/components/rpe-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { formatPace, formatSessionDay, SESSION_LABEL } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
-import { removeWorkoutLog, submitWorkoutLog } from "./actions";
+import { deleteSessionAction, removeWorkoutLog, submitWorkoutLog } from "./actions";
 
 // Reads the session and its log on every request.
 export const dynamic = "force-dynamic";
@@ -23,7 +25,10 @@ interface LogPageProps {
 export default async function LogPage({ params, searchParams }: LogPageProps) {
   const { sessionId } = await params;
   const { error } = await searchParams;
-  const session = await prisma.session.findUnique({ where: { id: sessionId }, include: { workoutLog: true } });
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    include: { workoutLog: true, week: { select: { plan: { select: { status: true } } } } },
+  });
   if (!session) notFound();
 
   const submitAction = submitWorkoutLog.bind(null, sessionId);
@@ -94,6 +99,15 @@ export default async function LogPage({ params, searchParams }: LogPageProps) {
             Apagar registro
           </button>
         </form>
+      )}
+      {/* Spec DEL-07: only a session of the followed plan can be deleted, after confirmation. */}
+      {session.week.plan.status === PlanStatus.ACTIVE && (
+        <ConfirmDialog
+          label="Excluir treino"
+          message={`Excluir o treino de ${formatSessionDay(session.date)}? O registro dele, se houver, também será apagado.`}
+          action={deleteSessionAction.bind(null, sessionId)}
+          fields={{}}
+        />
       )}
     </main>
   );

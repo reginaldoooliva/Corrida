@@ -249,10 +249,10 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | DEL-04 | P1: Excluir um plano | T6 | Done |
 | DEL-05 | P1: Excluir um plano | T16 | Done |
 | DEL-06 | P1: Excluir um plano | T16 | Done |
-| DEL-07 | P1: Excluir um treino | Design | Pending |
-| DEL-08 | P1: Excluir um treino | Design | Pending |
+| DEL-07 | P1: Excluir um treino | T17 | Done |
+| DEL-08 | P1: Excluir um treino | T17 | Done |
 | DEL-09 | P1: Excluir um treino | T7 | Done |
-| DEL-10 | P1: Excluir um treino | Design | Pending |
+| DEL-10 | P1: Excluir um treino | T17 | Done |
 | RECALC-01 | P1: Recalcular o plano todo | T15 | Done |
 | RECALC-02 | P1: Recalcular o plano todo | T8 | Done |
 | RECALC-03 | P1: Recalcular o plano todo | T8 | Done |

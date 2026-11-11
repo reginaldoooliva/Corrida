@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { getSeededUserId, login, logWorkout, resetPlans, seedActivePlan } from "./helpers";
 import { reassessIfDue } from "../lib/domain/weekly-adjustment";
+import { formatSessionDay } from "../lib/format";
 import { prisma } from "../lib/prisma";
 
 test.use({ viewport: { width: 390, height: 844 } });
@@ -155,3 +156,50 @@ async function currentWeekSessions(planId: string) {
   return prisma.session.findMany({ where: { weekId: week.id }, orderBy: { date: "asc" } });
 }
 
+test("deleting a session asks for confirmation with the spec text", async ({ page }) => {
+  const { planId } = await seedActivePlan(await getSeededUserId());
+  const [session] = await currentWeekSessions(planId);
+
+  await page.goto(`/dashboard/log/${session.id}`);
+  await page.getByRole("button", { name: "Excluir treino" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Excluir treino" });
+  await expect(dialog.getByRole("paragraph")).toHaveText(
+    `Excluir o treino de ${formatSessionDay(session.date)}? O registro dele, se houver, também será apagado.`,
+  );
+  await expect(dialog.getByRole("button")).toHaveText(["Cancelar", "Excluir"]);
+});
+
+test("confirming deletes the session and its log and the dashboard no longer shows it", async ({ page }) => {
+  test.setTimeout(120000);
+  const { planId } = await seedActivePlan(await getSeededUserId(), { daysAgo: 3 });
+  const sessions = await currentWeekSessions(planId);
+  const doomed = sessions[0];
+  await logWorkout(doomed.id);
+  await page.goto("/dashboard");
+  const cards = page.getByRole("region", { name: "Planilha da semana" }).getByRole("listitem");
+  await expect(cards).toHaveCount(sessions.length);
+
+  await page.goto(`/dashboard/log/${doomed.id}`);
+  await page.getByRole("button", { name: "Excluir treino" }).click();
+  await page.getByRole("dialog", { name: "Excluir treino" }).getByRole("button", { name: "Excluir" }).click();
+
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(cards).toHaveCount(sessions.length - 1);
+  await expect(page.locator(`a[href="/dashboard/log/${doomed.id}"]`)).toHaveCount(0);
+  expect(await prisma.session.count({ where: { id: doomed.id } })).toBe(0);
+  expect(await prisma.workoutLog.count({ where: { sessionId: doomed.id } })).toBe(0);
+});
+
+test("deleting the last session of a week is refused", async ({ page }) => {
+  const { planId } = await seedActivePlan(await getSeededUserId());
+  const [last, ...others] = await currentWeekSessions(planId);
+  await prisma.session.deleteMany({ where: { id: { in: others.map((s) => s.id) } } });
+
+  await page.goto(`/dashboard/log/${last.id}`);
+  await page.getByRole("button", { name: "Excluir treino" }).click();
+  await page.getByRole("dialog", { name: "Excluir treino" }).getByRole("button", { name: "Excluir" }).click();
+
+  await expect(page.locator("main").getByRole("alert")).toHaveText("A semana precisa de pelo menos um treino.");
+  expect(await prisma.session.count({ where: { id: last.id } })).toBe(1);
+});

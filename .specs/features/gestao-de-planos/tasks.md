@@ -391,8 +391,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] e2e: exact text, deletion removes session and log from the dashboard, last session refused
-- [ ] Gate check passes: full gate with `e2e/delete.spec.ts`
+- [x] e2e: exact text, deletion removes session and log from the dashboard, last session refused
+- [x] Gate check passes: full gate with `e2e/delete.spec.ts`
 
 **Tests**: e2e
 **Gate**: full
