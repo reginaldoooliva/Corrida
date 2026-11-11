@@ -279,6 +279,8 @@ legend {
   margin: 0 auto;
   padding: 16px 16px 32px;
   display: grid;
+  /* minmax(0, ...): a row wider than the screen (like .plan-tabs) scrolls itself, not the page. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
   align-content: start;
   animation: surface-enter 220ms cubic-bezier(0.16, 1, 0.3, 1);

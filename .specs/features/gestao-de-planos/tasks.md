@@ -68,7 +68,7 @@ T10 → T11 → T12 → T13
 ### Phase 4: Existing screens
 
 ```
-T14 → T15 → T16 → T17 → T18 → T19 → T20
+T14 → T15 → T16 → T17 → T18 → T19 → T20 → T21
 ```
 
 ---
@@ -457,6 +457,25 @@ T14 → T15 → T16 → T17 → T18 → T19 → T20
 
 ---
 
+### T21: Keep the history plan tabs inside a phone screen
+
+**What**: `.page`'s grid column is `minmax(0, 1fr)`, so a row wider than the screen (the history plan tabs, one per plan) scrolls on its own instead of widening the whole page. Found walking the history at 390px with three plans: `main` grew to 674px and the charts were cut off.
+**Where**: `app/globals.css`
+**Depends on**: T20
+**Reuses**: `.page`, `.plan-tabs`
+**Requirement**: PLANS-15
+
+**Done when**:
+
+- [x] e2e: with three plans, nothing on the history passes the right edge of a 390px screen, and the last plan tab is reached by scrolling the tabs row
+- [x] Gate check passes: full gate with `e2e/plans.spec.ts`
+
+**Tests**: e2e
+**Gate**: full
+**Commit**: `fix(history): keep the plan tabs inside a phone screen`
+
+---
+
 ## Checks
 
 **Run unit**: `npx vitest run lib/domain --reporter=verbose`
@@ -568,6 +587,9 @@ Proof: run e2e | ok notes.spec.ts › the dashboard card shows the note of a log
 **C35** - Both delete confirmations sit centered and whole on a 390px screen (DEL-11, AC 5)
 Proof: run e2e | ok delete.spec.ts › the delete confirmation sits centered and whole on a phone screen
 
+**C36** - With three plans the history fits a 390px screen and its plan tabs scroll on their own (PLANS-15, AC 13)
+Proof: run e2e | ok plans.spec.ts › with three plans the history fits a phone screen and its plan tabs scroll
+
 ---
 
 ## Handoff
@@ -588,7 +610,7 @@ Phase 1 → Phase 2 → Phase 3 → Phase 4
 Phase 1 (Data model):        T1
 Phase 2 (Domain):            T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9
 Phase 3 (Plans screen):      T10 → T11 → T12 → T13
-Phase 4 (Existing screens):  T14 → T15 → T16 → T17 → T18 → T19 → T20
+Phase 4 (Existing screens):  T14 → T15 → T16 → T17 → T18 → T19 → T20 → T21
 ```
 
 Execution is strictly sequential - a single agent works one task at a time, in order.

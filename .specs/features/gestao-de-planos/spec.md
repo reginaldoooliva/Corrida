@@ -86,6 +86,8 @@ provas diferentes sem perder nenhum plano.
     o estado vazio com um link para a tela "Planos". `PLANS-11`
 12. WHEN o usuário abre as Configurações THEN the system SHALL mostrar um link para a tela
     "Planos". `PLANS-12`
+13. WHEN o Histórico lista vários planos THEN the system SHALL caber numa tela de 390px de largura,
+    sem conteúdo cortado: as abas dos planos rolam na própria linha. `PLANS-15`
 
 **Independent Test**: Criar dois planos (o segundo pausa o primeiro), abrir "Planos", seguir o
 primeiro e ver o painel mostrar a semana dele; tentar um quarto plano com 3 existentes e ver a
@@ -245,6 +247,7 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | PLANS-12 | P1: Até 3 planos | T15 | Done |
 | PLANS-13 | Edge Cases | T4 | Done |
 | PLANS-14 | Edge Cases | T7 | Done |
+| PLANS-15 | P1: Até 3 planos | T21 | Done |
 | DEL-01 | P1: Excluir um plano | T12 | Done |
 | DEL-02 | P1: Excluir um plano | T12 | Done |
 | DEL-03 | P1: Excluir um plano | T12 | Done |

@@ -191,3 +191,33 @@ test("settings links to the plans screen", async ({ page }) => {
   await expect(page).toHaveURL(/\/plans$/);
   await expect(page.getByRole("heading", { level: 1, name: "Planos" })).toBeVisible();
 });
+
+test("with three plans the history fits a phone screen and its plan tabs scroll", async ({ page }) => {
+  const userId = await getSeededUserId();
+  const { planId: archived } = await seedActivePlan(userId, { raceType: RaceType.FIVE_K });
+  await prisma.plan.update({ where: { id: archived }, data: { status: PlanStatus.ARCHIVED } });
+  await seedActivePlan(userId, { raceType: RaceType.HALF, raceInDays: 120 });
+  await seedActivePlan(userId, { raceInDays: 70 });
+
+  await page.goto("/history");
+  const tabs = page.getByRole("navigation").filter({ has: page.locator(".plan-tabs") });
+  await expect(page.locator(".plan-tabs a")).toHaveCount(3);
+
+  const width = page.viewportSize()!.width;
+  const past = await page.evaluate(
+    (w) =>
+      Array.from(document.querySelectorAll("main *"))
+        .filter((el) => !el.closest(".plan-tabs li"))
+        .filter((el) => el.getBoundingClientRect().right > w + 1)
+        .map((el) => `${el.tagName} ${Math.round(el.getBoundingClientRect().right)}`),
+    width,
+  );
+  expect(past, "elements past the right edge of the phone screen").toEqual([]);
+
+  // The tabs that do not fit are reached by scrolling the tabs row itself.
+  const last = page.locator(".plan-tabs a").last();
+  await last.scrollIntoViewIfNeeded();
+  const box = (await last.boundingBox())!;
+  expect(box.x + box.width).toBeLessThanOrEqual(width);
+  await expect(tabs).toBeVisible();
+});
