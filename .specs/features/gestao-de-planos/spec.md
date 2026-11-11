@@ -260,7 +260,7 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | RECALC-05 | P1: Recalcular o plano todo | T8 | Done |
 | NOTE-01 | P1: Observação | Design | Pending |
 | NOTE-02 | P1: Observação | Design | Pending |
-| NOTE-03 | P1: Observação | Design | Pending |
+| NOTE-03 | P1: Observação | T9 | Done |
 | NOTE-04 | P1: Observação | Design | Pending |
 | NOTE-05 | P1: Observação | Design | Pending |
 

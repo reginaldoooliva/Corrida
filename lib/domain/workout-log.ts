@@ -2,21 +2,35 @@ import type { WorkoutLog } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 
+export const NOTES_MAX = 500;
+export const NOTES_ERROR = "Observação inválida: no máximo 500 caracteres.";
+
+// Spec NOTE-02/03: the note is trimmed; an empty or blank one is no note at all (null), and one over
+// 500 characters is refused.
+export function parseNotes(raw: string | null | undefined): string | null {
+  const notes = (raw ?? "").trim();
+  if (notes.length > NOTES_MAX) throw new Error(NOTES_ERROR);
+  return notes === "" ? null : notes;
+}
+
 export interface WorkoutLogInput {
   actualPaceSecPerKm: number;
   actualDistanceKm: number;
   actualDurationMin: number;
   rpe: number;
+  // Spec NOTE-01: the note as typed; parseNotes decides what is saved.
+  notes?: string | null;
 }
 
 // Spec LOG-01 (and LOG-03 for an existing log): one WorkoutLog per session (unique sessionId), so
 // saving is an upsert. The session's status is derived from the log's presence
 // (session-status.ts), so nothing else needs writing for it to show as done.
 export async function saveWorkoutLog(sessionId: string, input: WorkoutLogInput): Promise<WorkoutLog> {
+  const data = { ...input, notes: parseNotes(input.notes) };
   return prisma.workoutLog.upsert({
     where: { sessionId },
-    create: { sessionId, ...input },
-    update: input,
+    create: { sessionId, ...data },
+    update: data,
   });
 }
 

@@ -239,8 +239,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] `lib/domain/workout-log.test.ts` covers blank, trimmed, 500 and 501 characters
-- [ ] Gate check passes: `npm run build && npm run typecheck && npm run lint && npx vitest run lib/domain --reporter=verbose`
+- [x] `lib/domain/workout-log.test.ts` covers blank, trimmed, 500 and 501 characters
+- [x] Gate check passes: `npm run build && npm run typecheck && npm run lint && npx vitest run lib/domain --reporter=verbose`
 
 **Tests**: unit
 **Gate**: build
