@@ -85,9 +85,9 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] `prisma/migrations/20261110120000_add_paused_plan_status/migration.sql` adds the value
-- [ ] `npx prisma migrate deploy` applied it to the dev database
-- [ ] Gate check passes: `npm run build && npm run typecheck && npm run lint`
+- [x] `prisma/migrations/20261110120000_add_paused_plan_status/migration.sql` adds the value
+- [x] `npx prisma migrate deploy` applied it to the dev database
+- [x] Gate check passes: `npm run build && npm run typecheck && npm run lint`
 
 **Tests**: none
 **Gate**: build
