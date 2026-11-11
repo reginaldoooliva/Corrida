@@ -34,4 +34,12 @@
 - **Date**: 2026-11-05
 - **Status**: active
 
+### AD-005
+- **Decision**: Até 3 planos não arquivados por usuário (`active` ou `paused`), com no máximo um `active`; substitui `LIFE-06` ("no máximo um plano `active`" continua, mas planos pausados passam a existir).
+- **Reason**: Pergunta: "Hoje o app permite só um plano ativo. Como devem funcionar os até 3 planos?" - opção escolhida: "Até 3 salvos, 1 ativo (Recomendado)".
+- **Trade-off**: Um novo status `paused` e regras para retomar um plano pausado (`PLANS-09`).
+- **Scope**: `gestao-de-planos` e o ciclo de vida de planos de `coach-virtual`.
+- **Date**: 2026-11-10
+- **Status**: active
+
 ## Handoff
