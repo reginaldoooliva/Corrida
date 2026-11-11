@@ -96,3 +96,62 @@ test("cancelling the plan deletion keeps the plan and everything in it", async (
   await expect(planItem(page, "10K (10km)")).toBeVisible();
   expect(await rowsOf(planId)).toEqual(before);
 });
+
+test("every plan on the plans screen and every archived plan in history offers Excluir plano", async ({ page }) => {
+  test.setTimeout(120000);
+  const userId = await getSeededUserId();
+  const archived: string[] = [];
+  for (const raceType of [RaceType.FIVE_K, RaceType.MARATHON]) {
+    const { planId } = await seedActivePlan(userId, { raceType, raceInDays: 120 });
+    await prisma.plan.update({ where: { id: planId }, data: { status: PlanStatus.ARCHIVED } });
+    archived.push(planId);
+  }
+  await seedActivePlan(userId);
+  await seedActivePlan(userId, { raceType: RaceType.HALF, raceInDays: 120 });
+
+  await page.goto("/plans");
+  const items = page.getByRole("list", { name: "Seus planos" }).getByRole("listitem");
+  await expect(items).toHaveCount(2);
+  for (const item of await items.all()) {
+    await expect(item.getByRole("button", { name: "Excluir plano" })).toBeVisible();
+  }
+
+  for (const planId of archived) {
+    await page.goto(`/history?plan=${planId}`);
+    await expect(page.getByRole("link", { name: /arquivado/ })).toHaveCount(2);
+    await expect(page.getByRole("button", { name: "Excluir plano" })).toBeVisible();
+  }
+  // The tabs name each plan by status: the followed, the paused and the archived ones.
+  await expect(page.getByRole("navigation", { name: "Planos" }).getByRole("link")).toHaveText([
+    /\(atual\)/, /\(pausado\)/, /\(arquivado\)/, /\(arquivado\)/,
+  ]);
+});
+
+test("a deleted archived plan is no longer listed in history", async ({ page }) => {
+  test.setTimeout(120000);
+  const userId = await getSeededUserId();
+  const { planId: old } = await seedActivePlan(userId, { raceType: RaceType.FIVE_K });
+  await prisma.plan.update({ where: { id: old }, data: { status: PlanStatus.ARCHIVED } });
+  await seedActivePlan(userId);
+
+  await page.goto(`/history?plan=${old}`);
+  await page.getByRole("button", { name: "Excluir plano" }).click();
+  const dialog = page.getByRole("dialog", { name: "Excluir plano" });
+  await expect(dialog.getByRole("paragraph")).toHaveText(
+    "Excluir o plano de 5K? Todas as semanas, treinos e registros dele serão apagados. Isso não pode ser desfeito.",
+  );
+  await dialog.getByRole("button", { name: "Excluir" }).click();
+
+  await expect(page).toHaveURL(/\/history$/);
+  const tabs = page.getByRole("navigation", { name: "Planos" }).getByRole("link");
+  await expect(tabs).toHaveCount(1);
+  await expect(tabs).toHaveText(/\(atual\)/);
+  expect(await prisma.plan.count({ where: { id: old } })).toBe(0);
+});
+
+// The followed plan's current week, sessions in date order.
+async function currentWeekSessions(planId: string) {
+  const week = await prisma.week.findFirstOrThrow({ where: { planId, weekNumber: 1 } });
+  return prisma.session.findMany({ where: { weekId: week.id }, orderBy: { date: "asc" } });
+}
+

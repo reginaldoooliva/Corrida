@@ -247,8 +247,8 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | DEL-02 | P1: Excluir um plano | T12 | Done |
 | DEL-03 | P1: Excluir um plano | T12 | Done |
 | DEL-04 | P1: Excluir um plano | T6 | Done |
-| DEL-05 | P1: Excluir um plano | Design | Pending |
-| DEL-06 | P1: Excluir um plano | Design | Pending |
+| DEL-05 | P1: Excluir um plano | T16 | Done |
+| DEL-06 | P1: Excluir um plano | T16 | Done |
 | DEL-07 | P1: Excluir um treino | Design | Pending |
 | DEL-08 | P1: Excluir um treino | Design | Pending |
 | DEL-09 | P1: Excluir um treino | T7 | Done |

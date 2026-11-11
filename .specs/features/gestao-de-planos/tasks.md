@@ -372,8 +372,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] e2e: the deleted archived plan disappears from history
-- [ ] Gate check passes: full gate with `e2e/delete.spec.ts e2e/history.spec.ts`
+- [x] e2e: the deleted archived plan disappears from history
+- [x] Gate check passes: full gate with `e2e/delete.spec.ts e2e/history.spec.ts`
 
 **Tests**: e2e
 **Gate**: full

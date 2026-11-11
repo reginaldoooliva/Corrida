@@ -1,12 +1,14 @@
 import { PlanStatus } from "@prisma/client";
 import Link from "next/link";
 
+import { deletePlanAction } from "@/app/plans/actions";
 import { BottomNav } from "@/components/bottom-nav";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ChartIcon } from "@/components/icons";
 import { appToday } from "@/lib/domain/clock";
 import { getSeededUserId } from "@/lib/domain/auth";
 import { weeklyAdherence } from "@/lib/domain/session-status";
-import { formatFinishTime, formatIsoDay as formatDate, formatPace, RACE_LABEL } from "@/lib/format";
+import { deletePlanMessage, formatFinishTime, formatIsoDay as formatDate, formatPace, RACE_LABEL } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 // Reads the plan's VdotHistory and logs on every request (HIST-01/02); never a build-time snapshot.
@@ -15,6 +17,12 @@ export const dynamic = "force-dynamic";
 const WIDTH = 360;
 const HEIGHT = 200;
 const PAD = 44;
+
+const STATUS_TAB: Record<PlanStatus, string> = {
+  [PlanStatus.ACTIVE]: "atual",
+  [PlanStatus.PAUSED]: "pausado",
+  [PlanStatus.ARCHIVED]: "arquivado",
+};
 
 interface PacePoint {
   date: Date;
@@ -97,11 +105,11 @@ function VdotChart({ points }: { points: VdotPoint[] }) {
 }
 
 interface HistoryPageProps {
-  searchParams: Promise<{ plan?: string }>;
+  searchParams: Promise<{ plan?: string; error?: string }>;
 }
 
 export default async function HistoryPage({ searchParams }: HistoryPageProps) {
-  const { plan: selectedId } = await searchParams;
+  const { plan: selectedId, error } = await searchParams;
   const userId = await getSeededUserId();
   // Spec HIST-03: every plan can be picked; with none picked, the active plan is shown (or, with
   // no active plan, the latest one).
@@ -166,13 +174,17 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
             {plans.map((p) => (
               <li key={p.id}>
                 <Link href={`/history?plan=${p.id}`} aria-current={p.id === plan.id ? "page" : undefined}>
-                  {RACE_LABEL[p.raceType]} - {formatDate(p.raceDate)} (
-                  {p.status === PlanStatus.ACTIVE ? "atual" : "arquivado"})
+                  {RACE_LABEL[p.raceType]} - {formatDate(p.raceDate)} ({STATUS_TAB[p.status]})
                 </Link>
               </li>
             ))}
           </ul>
         </nav>
+        {error && (
+          <p role="alert" className="alert">
+            {error}
+          </p>
+        )}
         {plan.raceResult && (
           <section aria-label="Resultado" className="card card-hero">
             <span className="metric-label">Fita de chegada</span>
@@ -227,6 +239,15 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
             })}
           </ul>
         </section>
+        {/* Spec DEL-05/06: an archived plan can be deleted from here; it then leaves this list. */}
+        {plan.status === PlanStatus.ARCHIVED && (
+          <ConfirmDialog
+            label="Excluir plano"
+            message={deletePlanMessage(plan.raceType)}
+            action={deletePlanAction}
+            fields={{ planId: plan.id, from: "/history" }}
+          />
+        )}
       </main>
       <BottomNav />
     </>
