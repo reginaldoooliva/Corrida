@@ -295,28 +295,52 @@ export async function recalculateFromCurrentWeek(
   const previous = plan.weeks.find((w) => w.weekNumber === currentWeek - 1);
   if (previous && !previous.reassessedAt) await reassessIfDue(previous.id);
 
+  await rebuildWeeks(plan, { fromWeek: currentWeek, totalWeeks, raceDate, days, daysFor: () => days });
+}
+
+// Spec RECALC-01..04 / EDIT-01..03: rebuild weeks `fromWeek`..`totalWeeks` of the plan in place.
+// A week that exists keeps its id, `reassessedAt` and WeeklyAdjustment (RECALC-04): its phase is
+// updated, its unlogged sessions are replaced by sessions generated from currentVdot (RECALC-03), and
+// a day that already has a logged session gets no other (RECALC-02). Missing weeks are created;
+// weeks past the new end lose their unlogged sessions, and go when nothing logged is left in them.
+async function rebuildWeeks(
+  plan: { id: string; startDate: Date; currentVdot: number },
+  opts: {
+    fromWeek: number;
+    totalWeeks: number;
+    raceDate: Date;
+    days: Weekday[];
+    daysFor: (weekNumber: number) => Weekday[];
+  },
+): Promise<void> {
+  const planId = plan.id;
+  const startDay = utcDayNumber(plan.startDate);
   await prisma.$transaction(async (tx) => {
     const weeks = await tx.week.findMany({
       where: { planId },
       include: { sessions: { include: { workoutLog: true } } },
     });
-    const rebuilt = weeks.filter((w) => w.weekNumber >= currentWeek);
-    const keptWeeks = rebuilt.filter((w) => w.sessions.some((s) => s.workoutLog));
-
+    const rebuilt = weeks.filter((w) => w.weekNumber >= opts.fromWeek);
     await tx.session.deleteMany({
       where: {
         id: { in: rebuilt.flatMap((w) => w.sessions.filter((s) => !s.workoutLog).map((s) => s.id)) },
       },
     });
-    await tx.week.deleteMany({
-      where: { id: { in: rebuilt.filter((w) => !keptWeeks.includes(w)).map((w) => w.id) } },
-    });
+    const doomed = rebuilt.filter(
+      (w) => w.weekNumber > opts.totalWeeks && !w.sessions.some((s) => s.workoutLog),
+    );
+    await tx.weeklyAdjustment.deleteMany({ where: { weekId: { in: doomed.map((w) => w.id) } } });
+    await tx.week.deleteMany({ where: { id: { in: doomed.map((w) => w.id) } } });
 
-    for (const assignment of splitPhases(totalWeeks).slice(currentWeek - 1)) {
+    for (const assignment of splitPhases(opts.totalWeeks).slice(opts.fromWeek - 1)) {
       const startDate = new Date((startDay + (assignment.weekNumber - 1) * 7) * DAY_MS);
-      const drafts = generateSessions({ ...assignment, startDate }, days, plan.currentVdot);
-      const kept = keptWeeks.find((w) => w.weekNumber === assignment.weekNumber);
-      if (!kept) {
+      const drafts = generateSessions(
+        { ...assignment, startDate },
+        opts.daysFor(assignment.weekNumber),
+        plan.currentVdot,
+      );
+      const existing = rebuilt.find((w) => w.weekNumber === assignment.weekNumber);
+      if (!existing) {
         await tx.week.create({
           data: {
             planId,
@@ -330,19 +354,52 @@ export async function recalculateFromCurrentWeek(
         continue;
       }
       const loggedDays = new Set(
-        kept.sessions.filter((s) => s.workoutLog).map((s) => utcDayNumber(s.date)),
+        existing.sessions.filter((s) => s.workoutLog).map((s) => utcDayNumber(s.date)),
       );
-      await tx.week.update({ where: { id: kept.id }, data: { phase: assignment.phase } });
+      await tx.week.update({ where: { id: existing.id }, data: { phase: assignment.phase } });
       await tx.session.createMany({
         data: drafts
           .filter((d) => !loggedDays.has(utcDayNumber(d.date)))
-          .map((d) => ({ ...d, weekId: kept.id })),
+          .map((d) => ({ ...d, weekId: existing.id })),
       });
     }
 
-    await tx.plan.update({ where: { id: planId }, data: { raceDate, daysPerWeek: days } });
+    await tx.plan.update({ where: { id: planId }, data: { raceDate: opts.raceDate, daysPerWeek: opts.days } });
     // SPEC_DEVIATION: raised from Prisma's 5000ms default interactive-transaction timeout, as in
     // createPlan. Reason: rebuilding ~10 weeks one round trip at a time against the live pooled
     // Supabase connection took 5.1s+ (P2028 "Transaction already closed"), found by T39's e2e.
   }, { timeout: 20000 });
+}
+
+// Spec RECALC-01..05 / EDIT-01: the settings form sends the race date and the days together. The
+// same race date (by day) only changes days, from the current week on; a new race date rebuilds every
+// week from week 1, counted from the original start - weeks before the current one on the days the
+// plan already had, the rest on the new days.
+export async function editPlan(
+  planId: string,
+  changes: { raceDate: Date; days: Weekday[] },
+  today: Date,
+): Promise<void> {
+  const plan = await prisma.plan.findUniqueOrThrow({ where: { id: planId }, include: { weeks: true } });
+  if (utcDayNumber(changes.raceDate) === utcDayNumber(plan.raceDate)) {
+    return recalculateFromCurrentWeek(planId, { days: changes.days }, today);
+  }
+  if (!validateDaysPerWeek(changes.days)) throw new Error(DAYS_PER_WEEK_ERROR);
+  const startDay = utcDayNumber(plan.startDate);
+  const currentWeek = Math.max(1, Math.floor((utcDayNumber(today) - startDay) / 7) + 1);
+  const { weeks: totalWeeks } = computePlanWeeks(plan.raceType, changes.raceDate, plan.startDate);
+  if (totalWeeks < currentWeek) throw new Error(RACE_DATE_ERROR);
+
+  // As in recalculateFromCurrentWeek: settle the ended week before the current one first.
+  const previous = plan.weeks.find((w) => w.weekNumber === currentWeek - 1);
+  if (previous && !previous.reassessedAt) await reassessIfDue(previous.id);
+
+  const oldDays = plan.daysPerWeek as Weekday[];
+  await rebuildWeeks(plan, {
+    fromWeek: 1,
+    totalWeeks,
+    raceDate: changes.raceDate,
+    days: changes.days,
+    daysFor: (n) => (n < currentWeek ? oldDays : changes.days),
+  });
 }

@@ -255,6 +255,7 @@ import {
   createNewPlan,
   deletePlan,
   deleteSession,
+  editPlan,
   followPlan,
   initialVdotForNewPlan,
   isPlausibleRaceTime,
@@ -265,6 +266,7 @@ import {
   PlanLimitError,
   PlanNotFoundError,
   recalculateFromCurrentWeek,
+  RACE_DATE_ERROR,
   recordRaceResult,
   SessionNotFoundError,
 } from "./plan-lifecycle";
@@ -937,6 +939,103 @@ describe("plan-lifecycle", () => {
       expect(db.adjustments).toHaveLength(1);
       // From the current week on, adjacent weeks share the same day count.
       expect(sessionsOf(CURRENT_WEEK)).toHaveLength(sessionsOf(CURRENT_WEEK + 1).length);
+    });
+
+    // editPlan with a new race date: 2027-02-06 is 15 weeks from the plan start (was 12).
+    const LATER_RACE = new Date("2027-02-06T00:00:00Z");
+    const NEW_DAYS: Weekday[] = [0, 2, 4, 6];
+    const day = (d: unknown) => (d as Date).toISOString().slice(0, 10);
+
+    it("editPlan rebuilds the phases of every week from week 1, counted from the original start", async () => {
+      await editPlan(planId, { raceDate: LATER_RACE, days: NEW_DAYS }, EDIT_DAY);
+
+      expect(db.plans[0]).toMatchObject({ raceDate: LATER_RACE, daysPerWeek: NEW_DAYS });
+      const plan = db.weeks.filter((w) => w.planId === planId);
+      expect(plan).toHaveLength(15);
+      for (const { weekNumber, phase } of splitPhases(15)) {
+        const week = weekNo(weekNumber);
+        expect(week.phase).toBe(phase);
+        expect(day(week.startDate)).toBe(day(new Date(PLAN_START.getTime() + (weekNumber - 1) * 7 * 86400000)));
+      }
+      // Weeks before the current one keep the days the plan had; the rest use the new days.
+      for (const n of [1, 2]) expect(sessionsOf(n).map((s) => (s.date as Date).getUTCDay()).sort()).toEqual([1, 3, 6]);
+      for (let n = CURRENT_WEEK + 1; n <= 15; n++) {
+        expect(sessionsOf(n).map((s) => (s.date as Date).getUTCDay()).sort()).toEqual(NEW_DAYS);
+      }
+    });
+
+    it("editPlan keeps every logged session with its log on its date and adds no session on that day", async () => {
+      const logged = structuredClone(
+        db.sessions.filter((s) => logOf(s)).map((s) => ({ s, log: logOf(s) })),
+      );
+      expect(logged).toHaveLength(7);
+
+      await editPlan(planId, { raceDate: LATER_RACE, days: NEW_DAYS }, EDIT_DAY);
+
+      for (const { s, log } of logged) {
+        const now = db.sessions.find((x) => x.id === s.id);
+        expect(now).toEqual(s);
+        expect(logOf(now!)).toEqual(log);
+        // The logged session is the only one on its day.
+        const sameDay = db.sessions.filter((x) => x.weekId === s.weekId && day(x.date) === day(s.date));
+        expect(sameDay).toHaveLength(1);
+      }
+      expect(sessionsOf(CURRENT_WEEK).map((s) => day(s.date))).toEqual([
+        "2026-11-07", "2026-11-08", "2026-11-10", "2026-11-12",
+      ]);
+    });
+
+    it("editPlan derives the regenerated paces from currentVdot", async () => {
+      // Week 2's Wednesday was missed: it is regenerated, on the plan's old days, like every week.
+      const missed = sessionsOf(2)[1];
+      db.logs = db.logs.filter((l) => l.sessionId !== missed.id);
+
+      await editPlan(planId, { raceDate: LATER_RACE, days: NEW_DAYS }, EDIT_DAY);
+
+      const regenerated = db.sessions.filter((s) => !logOf(s));
+      expect(regenerated.some((s) => s.weekId === weekNo(2).id && day(s.date) === day(missed.date))).toBe(true);
+      const initialVdot = db.plans[0].initialVdot as number;
+      for (const s of regenerated) {
+        const type = s.type as SessionType;
+        expect(s.plannedPaceSecPerKm).toBe(paceForVdot(52, type).secPerKm);
+        expect(s.plannedPaceSecPerKm).not.toBe(paceForVdot(initialVdot, type).secPerKm);
+      }
+    });
+
+    it("editPlan keeps every reassessed week reassessed", async () => {
+      db.adjustments.push({ id: "adj-week-1", weekId: weekNo(1).id, decision: Decision.PROGRESS });
+      const week1 = structuredClone(weekNo(1));
+
+      await editPlan(planId, { raceDate: LATER_RACE, days: NEW_DAYS }, EDIT_DAY);
+
+      // Same week row, same reassessedAt, its adjustment kept; the pending week 2 was settled first.
+      expect(weekNo(1)).toMatchObject({ id: week1.id, reassessedAt: week1.reassessedAt });
+      expect(weekNo(2).reassessedAt).toBeInstanceOf(Date);
+      expect(db.adjustments.map((a) => a.weekId)).toEqual([weekNo(1).id, weekNo(2).id]);
+      expect(await reassessIfDue(weekNo(1).id as string)).toBeNull();
+      expect(await reassessIfDue(weekNo(2).id as string)).toBeNull();
+    });
+
+    it("editPlan refuses a race date that leaves fewer weeks than the current one", async () => {
+      const before = structuredClone(db);
+
+      await expect(
+        editPlan(planId, { raceDate: new Date("2026-11-06T00:00:00Z"), days: NEW_DAYS }, EDIT_DAY),
+      ).rejects.toThrow(RACE_DATE_ERROR);
+
+      expect(RACE_DATE_ERROR).toBe("A data da prova precisa ser depois da semana de treino atual.");
+      expect(db).toEqual(before);
+    });
+
+    it("editPlan with an earlier race date drops the weeks past the new end", async () => {
+      // 2027-01-02 is 10 weeks from the plan start.
+      await editPlan(planId, { raceDate: new Date("2027-01-02T00:00:00Z"), days: NEW_DAYS }, EDIT_DAY);
+
+      expect(db.weeks.map((w) => w.weekNumber as number).sort((a, b) => a - b)).toEqual(
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      );
+      const weekIds = db.weeks.map((w) => w.id);
+      expect(db.sessions.every((s) => weekIds.includes(s.weekId))).toBe(true);
     });
   });
 });

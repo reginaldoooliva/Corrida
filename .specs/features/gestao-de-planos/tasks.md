@@ -220,8 +220,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] Existing `recalculateFromCurrentWeek` tests still pass unchanged
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Existing `recalculateFromCurrentWeek` tests still pass unchanged
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
 
 **Tests**: unit
 **Gate**: quick

@@ -254,10 +254,10 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | DEL-09 | P1: Excluir um treino | T7 | Done |
 | DEL-10 | P1: Excluir um treino | Design | Pending |
 | RECALC-01 | P1: Recalcular o plano todo | Design | Pending |
-| RECALC-02 | P1: Recalcular o plano todo | Design | Pending |
-| RECALC-03 | P1: Recalcular o plano todo | Design | Pending |
-| RECALC-04 | P1: Recalcular o plano todo | Design | Pending |
-| RECALC-05 | P1: Recalcular o plano todo | Design | Pending |
+| RECALC-02 | P1: Recalcular o plano todo | T8 | Done |
+| RECALC-03 | P1: Recalcular o plano todo | T8 | Done |
+| RECALC-04 | P1: Recalcular o plano todo | T8 | Done |
+| RECALC-05 | P1: Recalcular o plano todo | T8 | Done |
 | NOTE-01 | P1: Observação | Design | Pending |
 | NOTE-02 | P1: Observação | Design | Pending |
 | NOTE-03 | P1: Observação | Design | Pending |
