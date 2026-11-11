@@ -182,8 +182,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] Unit tests: nothing of the plan left, the other plans and their rows intact, statuses unchanged
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Unit tests: nothing of the plan left, the other plans and their rows intact, statuses unchanged
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
 
 **Tests**: unit
 **Gate**: quick

@@ -217,6 +217,26 @@ export async function listPlans(userId: string, today: Date): Promise<PlanSummar
     .sort((a, b) => rank(a.status) - rank(b.status));
 }
 
+// Spec DEL-02/04/14: delete one of the user's plans, whatever its status, with every row it owns,
+// children first, in one transaction. No other plan changes status: when the followed plan goes,
+// none is promoted (the dashboard shows its empty state).
+export async function deletePlan(userId: string, planId: string): Promise<void> {
+  const plan = await prisma.plan.findFirst({ where: { id: planId, userId } });
+  if (!plan) throw new PlanNotFoundError();
+  await prisma.$transaction(async (tx) => {
+    const weeks = await tx.week.findMany({ where: { planId }, include: { sessions: true } });
+    const weekIds = weeks.map((w) => w.id);
+    const sessionIds = weeks.flatMap((w) => w.sessions.map((s) => s.id));
+    await tx.workoutLog.deleteMany({ where: { sessionId: { in: sessionIds } } });
+    await tx.weeklyAdjustment.deleteMany({ where: { weekId: { in: weekIds } } });
+    await tx.session.deleteMany({ where: { id: { in: sessionIds } } });
+    await tx.week.deleteMany({ where: { id: { in: weekIds } } });
+    await tx.vdotHistory.deleteMany({ where: { planId } });
+    await tx.raceResult.deleteMany({ where: { planId } });
+    await tx.plan.delete({ where: { id: planId } });
+  }, { timeout: 20000 });
+}
+
 export const RACE_DATE_ERROR = "A data da prova precisa ser depois da semana de treino atual.";
 
 // Spec EDIT-01..03: rebuild the plan from the week containing `today` onwards with the plan's

@@ -88,6 +88,16 @@ const { db, emptyStore, modelsFor } = vi.hoisted(() => {
           return plan ? clone(plan) : null;
         },
         count: async ({ where }: { where: Row }) => store.plans.filter(matches(where)).length,
+        delete: async ({ where }: { where: { id: string } }) => {
+          // Mirrors the foreign keys: a plan still owning weeks, VDOT history or a result stays.
+          const owned = [store.weeks, store.vdotHistory, store.raceResults].some((t) =>
+            t.some((r) => r.planId === where.id),
+          );
+          if (owned) throw new Error("Foreign key violation: Plan.id");
+          const plan = store.plans.find((p) => p.id === where.id)!;
+          store.plans = store.plans.filter((p) => p !== plan);
+          return clone(plan);
+        },
         findMany: async ({ where, include }: { where: Row; include?: { weeks?: unknown } }) =>
           store.plans.filter(matches(where)).map((p) =>
             clone(include?.weeks ? { ...p, weeks: store.weeks.filter((w) => w.planId === p.id) } : p),
@@ -147,6 +157,9 @@ const { db, emptyStore, modelsFor } = vi.hoisted(() => {
           if (doomed.some((w) => store.sessions.some((s) => s.weekId === w.id))) {
             throw new Error("Foreign key violation: Session.weekId");
           }
+          if (doomed.some((w) => store.adjustments.some((a) => a.weekId === w.id))) {
+            throw new Error("Foreign key violation: WeeklyAdjustment.weekId");
+          }
           store.weeks = store.weeks.filter((w) => !doomed.includes(w));
           return { count: doomed.length };
         },
@@ -171,14 +184,36 @@ const { db, emptyStore, modelsFor } = vi.hoisted(() => {
           return { count: doomed.length };
         },
       },
+      workoutLog: {
+        deleteMany: async ({ where }: { where: Row }) => {
+          const before = store.logs.length;
+          store.logs = store.logs.filter((r) => !matches(where)(r));
+          return { count: before - store.logs.length };
+        },
+      },
       weeklyAdjustment: {
         create: async ({ data }: { data: Row }) => insert(store.adjustments, "adj", data),
+        deleteMany: async ({ where }: { where: Row }) => {
+          const before = store.adjustments.length;
+          store.adjustments = store.adjustments.filter((r) => !matches(where)(r));
+          return { count: before - store.adjustments.length };
+        },
       },
       vdotHistory: {
         create: async ({ data }: { data: Row }) => insert(store.vdotHistory, "vh", data),
+        deleteMany: async ({ where }: { where: Row }) => {
+          const before = store.vdotHistory.length;
+          store.vdotHistory = store.vdotHistory.filter((r) => !matches(where)(r));
+          return { count: before - store.vdotHistory.length };
+        },
       },
       raceResult: {
         create: async ({ data }: { data: Row }) => insert(store.raceResults, "rr", data),
+        deleteMany: async ({ where }: { where: Row }) => {
+          const before = store.raceResults.length;
+          store.raceResults = store.raceResults.filter((r) => !matches(where)(r));
+          return { count: before - store.raceResults.length };
+        },
       },
     };
   }
@@ -203,6 +238,7 @@ import {
   archiveIfPast,
   archivePastPlans,
   createNewPlan,
+  deletePlan,
   followPlan,
   initialVdotForNewPlan,
   isPlausibleRaceTime,
@@ -560,6 +596,76 @@ describe("plan-lifecycle", () => {
     });
   });
 
+  describe("deletePlan", () => {
+    // Two plans of the user, each with weeks, sessions, a log, an adjustment, VDOT history and a
+    // race result: deleting one must leave nothing of it and every row of the other.
+    async function planWithEverything(raceDate: string) {
+      const { plan } = await createNewPlan({
+        userId: "user-1",
+        raceType: RaceType.TEN_K,
+        raceDate: new Date(raceDate),
+        daysPerWeek: [1, 3, 6],
+        vdotSource: VdotSource.MANUAL,
+        result: { distanceKm: 5, timeSec: 21 * 60 + 25 },
+        today: new Date("2026-10-24T00:00:00Z"),
+      });
+      const week1 = db.weeks.find((w) => w.planId === plan.id && w.weekNumber === 1)!;
+      const session = db.sessions.find((s) => s.weekId === week1.id)!;
+      db.logs.push({
+        id: `log-${plan.id}`,
+        sessionId: session.id,
+        actualPaceSecPerKm: 300,
+        actualDistanceKm: 5,
+        actualDurationMin: 25,
+        rpe: 5,
+        notes: null,
+      });
+      await reassessIfDue(week1.id as string);
+      await recordRaceResult(plan.id, 41 * 60 + 21);
+      return plan.id;
+    }
+    const rowsOf = (planId: string) => {
+      const weekIds = db.weeks.filter((w) => w.planId === planId).map((w) => w.id);
+      const sessionIds = db.sessions.filter((s) => weekIds.includes(s.weekId)).map((s) => s.id);
+      return {
+        plans: db.plans.filter((p) => p.id === planId).length,
+        weeks: weekIds.length,
+        sessions: sessionIds.length,
+        logs: db.logs.filter((l) => sessionIds.includes(l.sessionId)).length,
+        adjustments: db.adjustments.filter((a) => weekIds.includes(a.weekId)).length,
+        vdotHistory: db.vdotHistory.filter((v) => v.planId === planId).length,
+        raceResults: db.raceResults.filter((r) => r.planId === planId).length,
+      };
+    };
+    const NOTHING = { plans: 0, weeks: 0, sessions: 0, logs: 0, adjustments: 0, vdotHistory: 0, raceResults: 0 };
+
+    it("deletePlan removes the plan with its weeks, sessions, logs, adjustments, VDOT history and race result", async () => {
+      const doomed = await planWithEverything("2027-01-16T00:00:00Z");
+      const kept = await planWithEverything("2027-02-13T00:00:00Z");
+      const keptBefore = rowsOf(kept);
+      expect(Object.values(rowsOf(doomed)).every((n) => n > 0)).toBe(true);
+
+      await deletePlan("user-1", doomed);
+
+      expect(rowsOf(doomed)).toEqual(NOTHING);
+      expect(rowsOf(kept)).toEqual(keptBefore);
+    });
+
+    it("deletePlan of the active plan leaves every other plan's status as it was", async () => {
+      const paused = await planWithEverything("2027-01-16T00:00:00Z");
+      const active = await planWithEverything("2027-02-13T00:00:00Z");
+      const archived = seedPlan({ status: PlanStatus.ARCHIVED });
+      expect(db.plans.find((p) => p.id === active)?.status).toBe(PlanStatus.ACTIVE);
+
+      await deletePlan("user-1", active);
+
+      expect(db.plans.map((p) => [p.id, p.status])).toEqual([
+        [paused, PlanStatus.PAUSED],
+        [archived.id, PlanStatus.ARCHIVED],
+      ]);
+    });
+  });
+
   describe("refusals", () => {
     it("followPlan, deletePlan and deleteSession refuse an id that is not the user's or does not exist", async () => {
       const mine = seedPlan({ status: PlanStatus.PAUSED });
@@ -571,6 +677,9 @@ describe("plan-lifecycle", () => {
         await expect(followPlan("user-1", id, TODAY)).rejects.toBeInstanceOf(PlanNotFoundError);
       }
       await expect(followPlan("user-2", mine.id as string, TODAY)).rejects.toThrow("Plano não encontrado.");
+      for (const id of [theirs.id as string, "no-such-plan"]) {
+        await expect(deletePlan("user-1", id)).rejects.toBeInstanceOf(PlanNotFoundError);
+      }
 
       expect(db).toEqual(before);
     });
