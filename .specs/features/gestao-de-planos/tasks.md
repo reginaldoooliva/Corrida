@@ -201,8 +201,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] Unit tests, including a reassessment after the deletion with the missed signal off
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Unit tests, including a reassessment after the deletion with the missed signal off
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
 
 **Tests**: unit
 **Gate**: quick

@@ -251,7 +251,7 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | DEL-06 | P1: Excluir um plano | Design | Pending |
 | DEL-07 | P1: Excluir um treino | Design | Pending |
 | DEL-08 | P1: Excluir um treino | Design | Pending |
-| DEL-09 | P1: Excluir um treino | Design | Pending |
+| DEL-09 | P1: Excluir um treino | T7 | Done |
 | DEL-10 | P1: Excluir um treino | Design | Pending |
 | RECALC-01 | P1: Recalcular o plano todo | Design | Pending |
 | RECALC-02 | P1: Recalcular o plano todo | Design | Pending |

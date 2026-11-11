@@ -165,6 +165,21 @@ const { db, emptyStore, modelsFor } = vi.hoisted(() => {
         },
       },
       session: {
+        // Mirrors `include: { week: { include: { plan: true, sessions: ... } } }`.
+        findUnique: async ({ where, include }: { where: { id: string }; include?: { week?: unknown } }) => {
+          const session = store.sessions.find((s) => s.id === where.id);
+          if (!session) return null;
+          const out: Row = { ...session };
+          if (include?.week) {
+            const week = store.weeks.find((w) => w.id === session.weekId)!;
+            out.week = {
+              ...week,
+              plan: store.plans.find((p) => p.id === week.planId),
+              sessions: store.sessions.filter((s) => s.weekId === week.id),
+            };
+          }
+          return clone(out);
+        },
         update: async ({ where, data }: { where: { id: string }; data: Row }) => {
           const session = store.sessions.find((s) => s.id === where.id)!;
           Object.assign(session, data);
@@ -239,9 +254,11 @@ import {
   archivePastPlans,
   createNewPlan,
   deletePlan,
+  deleteSession,
   followPlan,
   initialVdotForNewPlan,
   isPlausibleRaceTime,
+  LAST_SESSION_ERROR,
   listPlans,
   PLAN_LIMIT_ERROR,
   PlanConflictError,
@@ -249,6 +266,7 @@ import {
   PlanNotFoundError,
   recalculateFromCurrentWeek,
   recordRaceResult,
+  SessionNotFoundError,
 } from "./plan-lifecycle";
 import { prisma } from "@/lib/prisma";
 import { calculateVdot, paceForVdot } from "./vdot";
@@ -666,6 +684,77 @@ describe("plan-lifecycle", () => {
     });
   });
 
+  describe("deleteSession", () => {
+    // A 4-day (Mon/Tue/Thu/Sat) plan started Monday 2026-10-26; week 1 ends Sunday 2026-11-01.
+    let planId: string;
+    const week1 = () => db.weeks.find((w) => w.planId === planId && w.weekNumber === 1)!;
+    const sessionsOf = (weekId: unknown) =>
+      db.sessions
+        .filter((s) => s.weekId === weekId)
+        .sort((a, b) => (a.date as Date).getTime() - (b.date as Date).getTime());
+    const logAsPlanned = (s: Row) =>
+      db.logs.push({
+        id: `log-${s.id}`,
+        sessionId: s.id,
+        actualPaceSecPerKm: s.plannedPaceSecPerKm,
+        actualDistanceKm: s.plannedDistanceKm,
+        actualDurationMin: s.plannedDurationMin,
+        rpe: 5,
+        notes: null,
+      });
+
+    beforeEach(async () => {
+      planId = (
+        await createNewPlan({
+          userId: "user-1",
+          raceType: RaceType.TEN_K,
+          raceDate: new Date("2027-01-16T00:00:00Z"),
+          daysPerWeek: [1, 2, 4, 6],
+          vdotSource: VdotSource.MANUAL,
+          result: { distanceKm: 5, timeSec: 21 * 60 + 25 },
+          today: new Date("2026-10-26T00:00:00Z"),
+        })
+      ).plan.id;
+    });
+
+    it("deleteSession removes the session and its WorkoutLog", async () => {
+      const [first, ...rest] = sessionsOf(week1().id);
+      logAsPlanned(first);
+      logAsPlanned(rest[0]);
+
+      await deleteSession("user-1", first.id as string);
+
+      expect(db.sessions.find((s) => s.id === first.id)).toBeUndefined();
+      expect(db.logs.find((l) => l.sessionId === first.id)).toBeUndefined();
+      // The week's other sessions, and their logs, are still there.
+      expect(sessionsOf(week1().id).map((s) => s.id)).toEqual(rest.map((s) => s.id));
+      expect(db.logs.map((l) => l.sessionId)).toEqual([rest[0].id]);
+    });
+
+    it("a deleted session does not count as missed when its week is reassessed", async () => {
+      const [unlogged, ...rest] = sessionsOf(week1().id);
+      expect(rest).toHaveLength(3);
+      await deleteSession("user-1", unlogged.id as string);
+      for (const s of rest) logAsPlanned(s);
+
+      const adjustment = await reassessIfDue(week1().id as string);
+
+      // With the session still there, 1 of 4 unlogged would trip the missed signal (ADJ-01).
+      expect(adjustment).toMatchObject({ missedTriggered: false, decision: Decision.PROGRESS });
+    });
+
+    it("deleteSession refuses the last session of a week", async () => {
+      const [keep, ...others] = sessionsOf(week1().id);
+      for (const s of others) await deleteSession("user-1", s.id as string);
+      const before = structuredClone(db);
+
+      await expect(deleteSession("user-1", keep.id as string)).rejects.toThrow(LAST_SESSION_ERROR);
+
+      expect(LAST_SESSION_ERROR).toBe("A semana precisa de pelo menos um treino.");
+      expect(db).toEqual(before);
+    });
+  });
+
   describe("refusals", () => {
     it("followPlan, deletePlan and deleteSession refuse an id that is not the user's or does not exist", async () => {
       const mine = seedPlan({ status: PlanStatus.PAUSED });
@@ -680,8 +769,21 @@ describe("plan-lifecycle", () => {
       for (const id of [theirs.id as string, "no-such-plan"]) {
         await expect(deletePlan("user-1", id)).rejects.toBeInstanceOf(PlanNotFoundError);
       }
-
       expect(db).toEqual(before);
+
+      // A session of another user's plan, of a plan not followed, and one that does not exist.
+      const theirsWeek = { id: "w-theirs", planId: theirs.id, weekNumber: 1, reassessedAt: null };
+      const mineWeek = { id: "w-mine", planId: mine.id, weekNumber: 1, reassessedAt: null };
+      db.weeks.push(theirsWeek, mineWeek);
+      db.plans.find((p) => p.id === theirs.id)!.status = PlanStatus.ACTIVE;
+      for (const [id, weekId] of [["s-theirs", "w-theirs"], ["s-theirs-2", "w-theirs"], ["s-paused", "w-mine"], ["s-paused-2", "w-mine"]]) {
+        db.sessions.push({ id, weekId, date: TODAY, type: SessionType.EASY, plannedPaceSecPerKm: 330 });
+      }
+      const withSessions = structuredClone(db);
+      for (const id of ["s-theirs", "s-paused", "no-such-session"]) {
+        await expect(deleteSession("user-1", id)).rejects.toBeInstanceOf(SessionNotFoundError);
+      }
+      expect(db).toEqual(withSessions);
     });
   });
 

@@ -237,6 +237,34 @@ export async function deletePlan(userId: string, planId: string): Promise<void> 
   }, { timeout: 20000 });
 }
 
+export const LAST_SESSION_ERROR = "A semana precisa de pelo menos um treino.";
+
+export class SessionNotFoundError extends Error {
+  constructor() {
+    super("Treino não encontrado.");
+    this.name = "SessionNotFoundError";
+  }
+}
+
+// Spec DEL-08/09/10/14: remove a planned session of the user's followed plan, with its WorkoutLog.
+// The weekly reassessment counts only the sessions a week has (computeSignals), so a deleted one is
+// never missed. A week keeps at least one session, or it could not be reassessed at all.
+export async function deleteSession(userId: string, sessionId: string): Promise<void> {
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    include: { week: { include: { plan: true, sessions: { select: { id: true } } } } },
+  });
+  const plan = session?.week.plan;
+  if (!session || plan?.userId !== userId || plan.status !== PlanStatus.ACTIVE) {
+    throw new SessionNotFoundError();
+  }
+  if (session.week.sessions.length <= 1) throw new Error(LAST_SESSION_ERROR);
+  await prisma.$transaction(async (tx) => {
+    await tx.workoutLog.deleteMany({ where: { sessionId } });
+    await tx.session.deleteMany({ where: { id: { in: [sessionId] } } });
+  });
+}
+
 export const RACE_DATE_ERROR = "A data da prova precisa ser depois da semana de treino atual.";
 
 // Spec EDIT-01..03: rebuild the plan from the week containing `today` onwards with the plan's
