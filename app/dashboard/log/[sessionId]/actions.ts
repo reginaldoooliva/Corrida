@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getSeededUserId } from "@/lib/domain/auth";
-import { paceFromRun } from "@/lib/domain/pace";
+import { DURATION_FORMAT_ERROR, paceFromRun, parseDuration } from "@/lib/domain/pace";
 import { deleteSession } from "@/lib/domain/plan-lifecycle";
 import { deleteWorkoutLog, saveWorkoutLog } from "@/lib/domain/workout-log";
 
@@ -16,11 +16,15 @@ const logSchema = z.object({
     .number({ invalid_type_error: "Distância inválida: informe um número em km." })
     .gt(0, "Distância inválida: precisa ser maior que 0 km.")
     .lte(200, "Distância inválida: no máximo 200 km."),
-  durationMin: z.coerce
-    .number({ invalid_type_error: "Duração inválida: informe os minutos." })
-    .int("Duração inválida: informe minutos inteiros.")
-    .gt(0, "Duração inválida: precisa ser maior que 0 minutos.")
-    .lte(600, "Duração inválida: no máximo 600 minutos."),
+  // Minutes and seconds, as "42:28" or "42,28" (AD-008); parseDuration names the field on error.
+  durationSec: z.string({ required_error: DURATION_FORMAT_ERROR }).transform((raw, ctx) => {
+    try {
+      return parseDuration(raw);
+    } catch (error) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: (error as Error).message });
+      return z.NEVER;
+    }
+  }),
   rpe: z.coerce
     .number({ invalid_type_error: "RPE inválido: informe um inteiro de 1 a 10." })
     .int("RPE inválido: informe um inteiro de 1 a 10.")
@@ -37,7 +41,7 @@ function field(formData: FormData, name: string): string | undefined {
 export async function submitWorkoutLog(sessionId: string, formData: FormData): Promise<void> {
   const parsed = logSchema.safeParse({
     distanceKm: field(formData, "distanceKm"),
-    durationMin: field(formData, "durationMin"),
+    durationSec: field(formData, "duration"),
     rpe: field(formData, "rpe"),
   });
 
@@ -50,9 +54,9 @@ export async function submitWorkoutLog(sessionId: string, formData: FormData): P
   const notes = z.string().nullable().catch(null).parse(formData.get("notes"));
   try {
     await saveWorkoutLog(sessionId, {
-      actualPaceSecPerKm: paceFromRun(parsed.data.distanceKm, parsed.data.durationMin)!,
+      actualPaceSecPerKm: paceFromRun(parsed.data.distanceKm, parsed.data.durationSec)!,
       actualDistanceKm: parsed.data.distanceKm,
-      actualDurationMin: parsed.data.durationMin,
+      actualDurationSec: parsed.data.durationSec,
       rpe: parsed.data.rpe,
       notes,
     });

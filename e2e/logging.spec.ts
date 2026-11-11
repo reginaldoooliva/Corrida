@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
   await login(page);
 });
 
-const VALID = { distanceKm: "8", durationMin: "41", rpe: "6" };
+const VALID = { distanceKm: "8", duration: "41", rpe: "6" };
 
 async function firstUnloggedSession(planId: string) {
   const week = await prisma.week.findFirstOrThrow({ where: { planId }, orderBy: { weekNumber: "asc" } });
@@ -37,7 +37,7 @@ async function pickRpe(page: Page, rpe: string) {
 
 async function fillLogForm(page: Page, values: typeof VALID) {
   await page.getByLabel("Distância (km)").fill(values.distanceKm);
-  await page.getByLabel("Duração (min)").fill(values.durationMin);
+  await page.getByLabel("Duração (min:seg)").fill(values.duration);
   await pickRpe(page, values.rpe);
   await page.getByRole("button", { name: "Salvar registro" }).click();
 }
@@ -60,7 +60,7 @@ test("submitting a valid workout log marks the session done", async ({ page }) =
   // 41 min over 8 km is 307.5 s/km, stored as 308 (5:08/km).
   await expect(updatedRow).toContainText("Pace real: 5:08/km");
   const log = await prisma.workoutLog.findUniqueOrThrow({ where: { sessionId: session.id } });
-  expect(log).toMatchObject({ actualPaceSecPerKm: 308, actualDistanceKm: 8, actualDurationMin: 41, rpe: 6 });
+  expect(log).toMatchObject({ actualPaceSecPerKm: 308, actualDistanceKm: 8, actualDurationSec: 41 * 60, rpe: 6 });
 });
 
 test("an out-of-range field is rejected and named in the error", async ({ page }) => {
@@ -73,8 +73,8 @@ test("an out-of-range field is rejected and named in the error", async ({ page }
   const cases: { values: typeof VALID; field: string }[] = [
     { values: { ...VALID, distanceKm: "200.5" }, field: "Distância" },
     { values: { ...VALID, distanceKm: "0" }, field: "Distância" },
-    { values: { ...VALID, durationMin: "601" }, field: "Duração" },
-    { values: { ...VALID, durationMin: "0" }, field: "Duração" },
+    { values: { ...VALID, duration: "601" }, field: "Duração" },
+    { values: { ...VALID, duration: "0" }, field: "Duração" },
     { values: { ...VALID, rpe: "11" }, field: "RPE" },
     { values: { ...VALID, rpe: "0" }, field: "RPE" },
     { values: { ...VALID, rpe: "5.5" }, field: "RPE" },
@@ -99,7 +99,7 @@ test("editing a log overwrites its stored values", async ({ page }) => {
   const userId = await getSeededUserId();
   const { planId } = await seedActivePlan(userId);
   const session = await firstUnloggedSession(planId);
-  await logWorkout(session.id, { actualPaceSecPerKm: 300, actualDistanceKm: 5, actualDurationMin: 25, rpe: 5 });
+  await logWorkout(session.id, { actualPaceSecPerKm: 300, actualDistanceKm: 5, actualDurationSec: 25 * 60, rpe: 5 });
 
   await page.goto("/dashboard");
   const row = page.getByRole("listitem").filter({ hasText: dayOf(session.date) });
@@ -107,10 +107,10 @@ test("editing a log overwrites its stored values", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Editar registro" })).toBeVisible();
   // The form shows the stored values before they are overwritten.
   await expect(page.getByLabel("Distância (km)")).toHaveValue("5");
-  await expect(page.getByLabel("Duração (min)")).toHaveValue("25");
+  await expect(page.getByLabel("Duração (min:seg)")).toHaveValue("25:00");
   await expect(page.getByRole("status", { name: "Pace calculado" })).toContainText("5:00/km");
   await expect(page.getByRole("radio", { name: /^RPE 5:/ })).toBeChecked();
-  await fillLogForm(page, { distanceKm: "10.5", durationMin: "51", rpe: "8" });
+  await fillLogForm(page, { distanceKm: "10.5", duration: "51", rpe: "8" });
 
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByRole("listitem").filter({ hasText: dayOf(session.date) })).toContainText(
@@ -118,7 +118,7 @@ test("editing a log overwrites its stored values", async ({ page }) => {
   );
   const logs = await prisma.workoutLog.findMany({ where: { sessionId: session.id } });
   expect(logs).toHaveLength(1);
-  expect(logs[0]).toMatchObject({ actualPaceSecPerKm: 291, actualDistanceKm: 10.5, actualDurationMin: 51, rpe: 8 });
+  expect(logs[0]).toMatchObject({ actualPaceSecPerKm: 291, actualDistanceKm: 10.5, actualDurationSec: 51 * 60, rpe: 8 });
 });
 
 test("deleting a log reverts the session to pending or missed", async ({ page }) => {
@@ -197,10 +197,45 @@ test("the pace is not typed: it shows as distance and duration are typed", async
 
   await page.getByLabel("Distância (km)").fill("10");
   await expect(pace).toContainText("Informe distância e duração");
-  await page.getByLabel("Duração (min)").fill("52");
+  await page.getByLabel("Duração (min:seg)").fill("52");
   await expect(pace).toContainText("5:12/km");
   await page.getByLabel("Distância (km)").fill("8");
   await expect(pace).toContainText("6:30/km");
-  await page.getByLabel("Duração (min)").fill("");
+  await page.getByLabel("Duração (min:seg)").fill("");
   await expect(pace).toContainText("Informe distância e duração");
+});
+
+test("the duration takes minutes and seconds, typed with ',' as a phone's keyboard offers", async ({ page }) => {
+  const userId = await getSeededUserId();
+  const { planId } = await seedActivePlan(userId);
+  const session = await firstUnloggedSession(planId);
+
+  await page.goto(`/dashboard/log/${session.id}`);
+  await page.getByLabel("Distância (km)").fill("7.59");
+  await page.getByLabel("Duração (min:seg)").fill("42,28");
+  // 42 min 28 s over 7.59 km is 335.7 s/km.
+  await expect(page.getByRole("status", { name: "Pace calculado" })).toContainText("5:36/km");
+  await pickRpe(page, "6");
+  await page.getByRole("button", { name: "Salvar registro" }).click();
+
+  await expect(page).toHaveURL(/\/dashboard$/);
+  const log = await prisma.workoutLog.findUniqueOrThrow({ where: { sessionId: session.id } });
+  expect(log).toMatchObject({ actualDurationSec: 42 * 60 + 28, actualDistanceKm: 7.59, actualPaceSecPerKm: 336 });
+
+  // Editing shows the seconds back, as 42:28.
+  await page.goto(`/dashboard/log/${session.id}`);
+  await expect(page.getByLabel("Duração (min:seg)")).toHaveValue("42:28");
+});
+
+test("a duration that is not minutes and seconds is refused, naming the field", async ({ page }) => {
+  const userId = await getSeededUserId();
+  const { planId } = await seedActivePlan(userId);
+  const session = await firstUnloggedSession(planId);
+
+  for (const duration of ["42:75", "42,5", "abc"]) {
+    await page.goto(`/dashboard/log/${session.id}`);
+    await fillLogForm(page, { ...VALID, duration });
+    await expect(page.getByRole("main").getByRole("alert"), duration).toContainText("Duração inválida");
+  }
+  expect(await prisma.workoutLog.count({ where: { sessionId: session.id } })).toBe(0);
 });

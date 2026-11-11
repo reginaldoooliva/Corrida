@@ -69,7 +69,7 @@ export default async function LogPage({ params, searchParams }: LogPageProps) {
         </p>
       )}
       <form action={submitAction} noValidate className="card form">
-        <RunFields distanceKm={log?.actualDistanceKm} durationMin={log?.actualDurationMin} />
+        <RunFields distanceKm={log?.actualDistanceKm} durationSec={log?.actualDurationSec} />
         <RpePicker defaultValue={log?.rpe} />
         {/* Spec NOTE-01/04: an optional note, pre-filled when editing. Its 500-character limit is
             checked on save (NOTE-02), so a longer paste gets the error instead of being cut. */}

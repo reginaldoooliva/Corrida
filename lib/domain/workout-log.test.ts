@@ -24,7 +24,7 @@ vi.mock("@/lib/prisma", () => ({
 
 import { NOTES_ERROR, NOTES_MAX, parseNotes, saveWorkoutLog } from "./workout-log";
 
-const RUN = { actualPaceSecPerKm: 330, actualDistanceKm: 8, actualDurationMin: 44, rpe: 5 };
+const RUN = { actualPaceSecPerKm: 330, actualDistanceKm: 8, actualDurationSec: 44 * 60, rpe: 5 };
 
 describe("workout-log", () => {
   beforeEach(() => logs.clear());

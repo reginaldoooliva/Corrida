@@ -18,7 +18,7 @@ async function firstSession(planId: string) {
 async function logWithNote(page: Page, sessionId: string, note: string) {
   await page.goto(`/dashboard/log/${sessionId}`);
   await page.getByLabel("Distância (km)").fill("8");
-  await page.getByLabel("Duração (min)").fill("41");
+  await page.getByLabel("Duração (min:seg)").fill("41");
   await page.getByRole("radio", { name: /^RPE 6:/ }).check();
   await page.getByLabel("Observação (opcional)").fill(note);
   await page.getByRole("button", { name: "Salvar registro" }).click();

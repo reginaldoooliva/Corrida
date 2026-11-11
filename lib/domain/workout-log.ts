@@ -25,7 +25,7 @@ export function parseNotes(raw: string | null | undefined): string | null {
 export interface WorkoutLogInput {
   actualPaceSecPerKm: number;
   actualDistanceKm: number;
-  actualDurationMin: number;
+  actualDurationSec: number;
   rpe: number;
   // Spec NOTE-01: the note as typed; parseNotes decides what is saved.
   notes?: string | null;

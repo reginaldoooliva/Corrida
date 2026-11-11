@@ -117,7 +117,7 @@ model WorkoutLog {
   sessionId          String   @unique
   actualPaceSecPerKm Int
   actualDistanceKm   Float
-  actualDurationMin  Int
+  actualDurationSec  Int
   rpe                Int
   notes              String?
   loggedAt           DateTime @default(now())

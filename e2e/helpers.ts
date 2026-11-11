@@ -81,14 +81,14 @@ export async function backdateLatestVdot(planId: string, daysAgo: number): Promi
 
 export async function logWorkout(
   sessionId: string,
-  overrides: Partial<{ actualPaceSecPerKm: number; actualDistanceKm: number; actualDurationMin: number; rpe: number }> = {},
+  overrides: Partial<{ actualPaceSecPerKm: number; actualDistanceKm: number; actualDurationSec: number; rpe: number }> = {},
 ): Promise<void> {
   await prisma.workoutLog.create({
     data: {
       sessionId,
       actualPaceSecPerKm: overrides.actualPaceSecPerKm ?? 300,
       actualDistanceKm: overrides.actualDistanceKm ?? 5,
-      actualDurationMin: overrides.actualDurationMin ?? 25,
+      actualDurationSec: overrides.actualDurationSec ?? 25 * 60,
       rpe: overrides.rpe ?? 5,
     },
   });

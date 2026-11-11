@@ -58,4 +58,12 @@
 - **Date**: 2026-11-11
 - **Status**: active
 
+### AD-008
+- **Decision**: A duração do treino é registrada em minutos e segundos e gravada em segundos (`WorkoutLog.actualDurationSec`, migração `20261111150000_workout_duration_seconds`, que converte os registros existentes de minutos para segundos). O campo "Duração (min:seg)" aceita `42:28`, `42,28`, `42.28`, `42` (só minutos) e `1:02:28`; segundos de 00 a 59, até 600 minutos (`parseDuration`, `lib/domain/pace.ts`). Supera o trade-off de AD-007.
+- **Reason**: Pedido do usuário: "Quero conseguir registrar os segundos do treino [...] Quero registrar 42,28 segundos" - com minutos inteiros não dava para registrar 42:28. A vírgula vale como separador porque o teclado numérico do celular não tem ":".
+- **Trade-off**: `42,5` é recusado (ambíguo entre 42:05 e 42 min e meio); o corredor digita `42,05` ou `42,30`.
+- **Scope**: `coach-virtual` (registro do treino).
+- **Date**: 2026-11-11
+- **Status**: active
+
 ## Handoff

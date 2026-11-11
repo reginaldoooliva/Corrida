@@ -636,7 +636,7 @@ describe("plan-lifecycle", () => {
         sessionId: session.id,
         actualPaceSecPerKm: 300,
         actualDistanceKm: 5,
-        actualDurationMin: 25,
+        actualDurationSec: 25 * 60,
         rpe: 5,
         notes: null,
       });
@@ -700,7 +700,7 @@ describe("plan-lifecycle", () => {
         sessionId: s.id,
         actualPaceSecPerKm: s.plannedPaceSecPerKm,
         actualDistanceKm: s.plannedDistanceKm,
-        actualDurationMin: s.plannedDurationMin,
+        actualDurationSec: Number(s.plannedDurationMin) * 60,
         rpe: 5,
         notes: null,
       });
@@ -828,7 +828,7 @@ describe("plan-lifecycle", () => {
           sessionId: s.id,
           actualPaceSecPerKm: s.plannedPaceSecPerKm,
           actualDistanceKm: s.plannedDistanceKm,
-          actualDurationMin: s.plannedDurationMin,
+          actualDurationSec: Number(s.plannedDurationMin) * 60,
           rpe,
           notes: null,
           loggedAt: s.date,
@@ -1060,7 +1060,7 @@ describe("plan-lifecycle", () => {
       // So the reassessment of week 3 never counts the deleted Monday as missed (DEL-09).
       for (const s of sessionsOf(CURRENT_WEEK).filter((s) => !logOf(s))) {
         db.logs.push({ id: `log-${s.id}`, sessionId: s.id, actualPaceSecPerKm: s.plannedPaceSecPerKm,
-          actualDistanceKm: s.plannedDistanceKm, actualDurationMin: s.plannedDurationMin, rpe: 6, notes: null });
+          actualDistanceKm: s.plannedDistanceKm, actualDurationSec: Number(s.plannedDurationMin) * 60, rpe: 6, notes: null });
       }
       expect(await reassessIfDue(weekNo(CURRENT_WEEK).id as string)).toMatchObject({ missedTriggered: false });
     });
