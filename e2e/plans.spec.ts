@@ -200,24 +200,36 @@ test("with three plans the history fits a phone screen and its plan tabs scroll"
   await seedActivePlan(userId, { raceInDays: 70 });
 
   await page.goto("/history");
-  const tabs = page.getByRole("navigation").filter({ has: page.locator(".plan-tabs") });
-  await expect(page.locator(".plan-tabs a")).toHaveCount(3);
-
+  const tabs = page.locator("ul.plan-tabs");
+  await expect(tabs.getByRole("link")).toHaveCount(3);
   const width = page.viewportSize()!.width;
-  const past = await page.evaluate(
-    (w) =>
-      Array.from(document.querySelectorAll("main *"))
-        .filter((el) => !el.closest(".plan-tabs li"))
-        .filter((el) => el.getBoundingClientRect().right > w + 1)
-        .map((el) => `${el.tagName} ${Math.round(el.getBoundingClientRect().right)}`),
-    width,
-  );
-  expect(past, "elements past the right edge of the phone screen").toEqual([]);
 
-  // The tabs that do not fit are reached by scrolling the tabs row itself.
-  const last = page.locator(".plan-tabs a").last();
+  // The page itself never scrolls sideways, and nothing outside the tabs row passes its right edge.
+  const page_ = await page.evaluate((w) => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    past: Array.from(document.querySelectorAll("main *"))
+      .filter((el) => !el.closest("ul.plan-tabs"))
+      .filter((el) => el.getBoundingClientRect().right > w + 1)
+      .map((el) => `${el.tagName} ${Math.round(el.getBoundingClientRect().right)}`),
+  }), width);
+  expect(page_.scrollWidth).toBeLessThanOrEqual(width);
+  expect(page_.past, "elements past the right edge of the phone screen").toEqual([]);
+
+  // The tabs row is one line, inside the screen, wider than it shows: it scrolls on its own.
+  const row = await tabs.evaluate((ul) => ({
+    right: ul.getBoundingClientRect().right,
+    scrollWidth: ul.scrollWidth,
+    clientWidth: ul.clientWidth,
+    tops: Array.from(ul.querySelectorAll("a")).map((a) => Math.round(a.getBoundingClientRect().top)),
+  }));
+  expect(row.right).toBeLessThanOrEqual(width);
+  expect(row.scrollWidth).toBeGreaterThan(row.clientWidth);
+  expect(new Set(row.tops).size).toBe(1);
+
+  const last = tabs.getByRole("link").last();
   await last.scrollIntoViewIfNeeded();
+  expect(await tabs.evaluate((ul) => ul.scrollLeft)).toBeGreaterThan(0);
   const box = (await last.boundingBox())!;
   expect(box.x + box.width).toBeLessThanOrEqual(width);
-  await expect(tabs).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollLeft)).toBe(0);
 });
