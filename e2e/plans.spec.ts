@@ -1,0 +1,60 @@
+import { PlanStatus, RaceType } from "@prisma/client";
+import { expect, test } from "@playwright/test";
+
+import { getSeededUserId, login, resetPlans, seedActivePlan } from "./helpers";
+import { formatLongDay } from "../lib/format";
+import { prisma } from "../lib/prisma";
+
+// The plans screen is a phone screen first (Passo Ritmo, 390px wide).
+test.use({ viewport: { width: 390, height: 844 } });
+
+test.beforeEach(async ({ page }) => {
+  await resetPlans(await getSeededUserId());
+  await login(page);
+});
+
+test("the plans screen lists each active and paused plan with race, date, weeks and status", async ({ page }) => {
+  const userId = await getSeededUserId();
+  // A 10K plan, then a half marathon that becomes the followed one and pauses the 10K.
+  const { planId: tenK } = await seedActivePlan(userId, { raceInDays: 70 });
+  const { planId: half } = await seedActivePlan(userId, { raceInDays: 120, raceType: RaceType.HALF });
+  // An archived plan is history, not one of the plans on this screen.
+  await prisma.plan.create({
+    data: {
+      userId,
+      raceType: RaceType.MARATHON,
+      raceDate: new Date("2026-01-01T00:00:00Z"),
+      startDate: new Date("2025-09-01T00:00:00Z"),
+      daysPerWeek: [1, 3, 6],
+      initialVdot: 45,
+      currentVdot: 45,
+      status: PlanStatus.ARCHIVED,
+    },
+  });
+  const plans = await prisma.plan.findMany({ where: { id: { in: [tenK, half] } }, include: { weeks: true } });
+  const byId = Object.fromEntries(plans.map((p) => [p.id, p]));
+
+  await page.goto("/plans");
+
+  await expect(page.getByRole("heading", { level: 1, name: "Planos" })).toBeVisible();
+  const items = page.getByRole("list", { name: "Seus planos" }).getByRole("listitem");
+  await expect(items).toHaveCount(2);
+  // The followed plan comes first.
+  for (const [i, id, name, status] of [
+    [0, half, "Meia maratona (21km)", "Seguindo"],
+    [1, tenK, "10K (10km)", "Pausado"],
+  ] as const) {
+    const item = items.nth(i);
+    await expect(item.getByRole("heading", { level: 2 })).toHaveText(name);
+    await expect(item.getByText(status, { exact: true })).toBeVisible();
+    await expect(item.getByRole("term")).toHaveText(["Data da prova", "Semanas"]);
+    await expect(item.getByRole("definition")).toHaveText([
+      formatLongDay(byId[id].raceDate),
+      String(byId[id].weeks.length),
+    ]);
+  }
+  await expect(page.getByText("Maratona (42km)")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Novo plano" })).toHaveAttribute("href", "/plan/new");
+  // Nothing spills past the phone's width.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});

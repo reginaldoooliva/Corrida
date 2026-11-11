@@ -258,8 +258,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] `e2e/plans.spec.ts` checks the list against seeded plans, at 390px wide
-- [ ] Gate check passes: full gate with `e2e/plans.spec.ts`
+- [x] `e2e/plans.spec.ts` checks the list against seeded plans, at 390px wide
+- [x] Gate check passes: full gate with `e2e/plans.spec.ts`
 
 **Tests**: e2e
 **Gate**: full

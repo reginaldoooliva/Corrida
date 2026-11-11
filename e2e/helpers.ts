@@ -48,14 +48,15 @@ export async function resetPlans(userId: string): Promise<void> {
 // mirrors the spec's own Independent Test ("avançar artificialmente a data").
 export async function seedActivePlan(
   userId: string,
-  opts: { daysAgo?: number; days?: Weekday[] } = {},
+  opts: { daysAgo?: number; days?: Weekday[]; raceInDays?: number; raceType?: RaceType } = {},
 ): Promise<{ planId: string }> {
   const today = appToday();
   const start = new Date(today.getTime() - (opts.daysAgo ?? 3) * 86400000);
-  const raceDate = new Date(today.getTime() + 70 * 86400000);
+  const raceDate = new Date(today.getTime() + (opts.raceInDays ?? 70) * 86400000);
+  // createNewPlan pauses the plan followed until now (AD-005), so seeding twice leaves one paused.
   const { plan } = await createNewPlan({
     userId,
-    raceType: RaceType.TEN_K,
+    raceType: opts.raceType ?? RaceType.TEN_K,
     raceDate,
     daysPerWeek: opts.days ?? [0, 1, 2, 3, 4, 5],
     vdotSource: VdotSource.MANUAL,

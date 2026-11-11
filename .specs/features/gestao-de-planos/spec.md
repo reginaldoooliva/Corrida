@@ -233,7 +233,7 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | PLANS-02 | P1: Até 3 planos | T3 | Done |
 | PLANS-03 | P1: Até 3 planos | Design | Pending |
 | PLANS-04 | P1: Até 3 planos | T3 | Done |
-| PLANS-05 | P1: Até 3 planos | Design | Pending |
+| PLANS-05 | P1: Até 3 planos | T10 | Done |
 | PLANS-06 | P1: Até 3 planos | Design | Pending |
 | PLANS-07 | P1: Até 3 planos | Design | Pending |
 | PLANS-08 | P1: Até 3 planos | Design | Pending |
