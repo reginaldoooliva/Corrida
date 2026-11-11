@@ -105,8 +105,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] Unit tests: past active and paused archived; race day and future kept; another user's plan untouched
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Unit tests: past active and paused archived; race day and future kept; another user's plan untouched
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
 
 **Tests**: unit
 **Gate**: quick

@@ -28,12 +28,25 @@ function utcDayNumber(date: Date): number {
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) / DAY_MS;
 }
 
-// Spec LIFE-01: archive once today has passed the race date. Race day itself is still active.
+const startOfDay = (date: Date) => new Date(utcDayNumber(date) * DAY_MS);
+// Plans the user keeps (AD-005): the one followed and the paused ones. Archived plans are history.
+const KEPT_STATUSES: PlanStatus[] = [PlanStatus.ACTIVE, PlanStatus.PAUSED];
+
+// Spec LIFE-01 / PLANS-10: archive once today has passed the race date, whether the plan is followed
+// or paused. Race day itself is not archived yet.
 export async function archiveIfPast(planId: string, today: Date): Promise<void> {
   const plan = await prisma.plan.findUniqueOrThrow({ where: { id: planId } });
-  if (plan.status !== PlanStatus.ACTIVE) return;
+  if (!KEPT_STATUSES.includes(plan.status)) return;
   if (utcDayNumber(plan.raceDate) >= utcDayNumber(today)) return;
   await prisma.plan.update({ where: { id: planId }, data: { status: PlanStatus.ARCHIVED } });
+}
+
+// Spec PLANS-10: every active or paused plan of the user whose race date is before today.
+export async function archivePastPlans(userId: string, today: Date): Promise<void> {
+  await prisma.plan.updateMany({
+    where: { userId, status: { in: KEPT_STATUSES }, raceDate: { lt: startOfDay(today) } },
+    data: { status: PlanStatus.ARCHIVED },
+  });
 }
 
 // The plausibility guard createPlan and recordVdotRetest apply, for a plan's own race distance.

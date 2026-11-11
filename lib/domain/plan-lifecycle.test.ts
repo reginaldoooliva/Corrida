@@ -53,6 +53,18 @@ const { db, emptyStore, modelsFor } = vi.hoisted(() => {
     };
     const idIn = (where: { id: { in: string[] } }) => (row: Row) =>
       where.id.in.includes(row.id as string);
+    // Mirrors the subset of Prisma's `where` the domain uses: equality (dates by value), `in`, `lt`.
+    const same = (a: unknown, b: unknown) =>
+      a instanceof Date && b instanceof Date ? a.getTime() === b.getTime() : (a ?? null) === (b ?? null);
+    const matches = (where: Row = {}) => (row: Row) =>
+      Object.entries(where).every(([key, cond]) => {
+        if (cond && typeof cond === "object" && !(cond instanceof Date)) {
+          const c = cond as { in?: unknown[]; lt?: Date };
+          if (c.in) return c.in.some((v) => same(row[key], v));
+          if (c.lt) return (row[key] as Date).getTime() < c.lt.getTime();
+        }
+        return same(row[key], cond);
+      });
     return {
       plan: {
         findUniqueOrThrow: async ({
@@ -71,11 +83,14 @@ const { db, emptyStore, modelsFor } = vi.hoisted(() => {
           if (include?.weeks) out.weeks = store.weeks.filter((w) => w.planId === plan.id);
           return clone(out);
         },
-        findFirst: async ({ where }: { where: { userId: string; status: string } }) => {
-          const plan = store.plans.find(
-            (p) => p.userId === where.userId && p.status === where.status,
-          );
+        findFirst: async ({ where }: { where: Row }) => {
+          const plan = store.plans.find(matches(where));
           return plan ? clone(plan) : null;
+        },
+        updateMany: async ({ where, data }: { where: Row; data: Row }) => {
+          const hit = store.plans.filter(matches(where));
+          for (const plan of hit) Object.assign(plan, data);
+          return { count: hit.length };
         },
         create: async ({ data }: { data: Row }) =>
           insert(store.plans, "plan", { status: "ACTIVE", ...data }),
@@ -177,6 +192,7 @@ import { createPlan, splitPhases, type Weekday } from "./plan-generator";
 import {
   ActivePlanExistsError,
   archiveIfPast,
+  archivePastPlans,
   createNewPlan,
   initialVdotForNewPlan,
   isPlausibleRaceTime,
@@ -230,6 +246,37 @@ describe("plan-lifecycle", () => {
       await archiveIfPast(raceDay.id as string, TODAY);
 
       expect(db.plans.map((p) => p.status)).toEqual([PlanStatus.ACTIVE, PlanStatus.ACTIVE]);
+    });
+
+    it("archiveIfPast archives a paused plan once its race date has passed", async () => {
+      const pausedPast = seedPlan({ status: PlanStatus.PAUSED, raceDate: new Date("2026-11-06T00:00:00Z") });
+      const pausedRaceDay = seedPlan({ status: PlanStatus.PAUSED, raceDate: new Date("2026-11-07T00:00:00Z") });
+
+      await archiveIfPast(pausedPast.id as string, TODAY);
+      await archiveIfPast(pausedRaceDay.id as string, TODAY);
+
+      expect(db.plans.map((p) => p.status)).toEqual([PlanStatus.ARCHIVED, PlanStatus.PAUSED]);
+    });
+  });
+
+  describe("archivePastPlans", () => {
+    it("archivePastPlans archives active and paused plans whose race date has passed", async () => {
+      const past = new Date("2026-11-06T00:00:00Z"); // the day before TODAY
+      seedPlan({ status: PlanStatus.ACTIVE, raceDate: past });
+      seedPlan({ status: PlanStatus.PAUSED, raceDate: new Date("2026-10-04T00:00:00Z") });
+      seedPlan({ status: PlanStatus.PAUSED, raceDate: new Date("2026-11-07T00:00:00Z") }); // race day
+      seedPlan({ status: PlanStatus.PAUSED, raceDate: new Date("2027-01-16T00:00:00Z") });
+      seedPlan({ status: PlanStatus.ACTIVE, raceDate: past, userId: "user-2" }); // someone else's
+
+      await archivePastPlans("user-1", TODAY);
+
+      expect(db.plans.map((p) => p.status)).toEqual([
+        PlanStatus.ARCHIVED,
+        PlanStatus.ARCHIVED,
+        PlanStatus.PAUSED,
+        PlanStatus.PAUSED,
+        PlanStatus.ACTIVE,
+      ]);
     });
   });
 
