@@ -117,17 +117,21 @@ test("a new plan defaults its VDOT from the last race result and lets the user e
   ]);
 });
 
-test("attempting a second active plan shows the one-active-plan rejection", async ({ page }) => {
+// SPEC_DEVIATION: LIFE-06 (one plan at a time, a second one refused) was replaced by gestao-de-planos
+// PLANS-01/04 (AD-005): a second plan becomes the followed one and pauses the plan followed until now.
+test("creating a second plan follows it and pauses the active one", async ({ page }) => {
   test.setTimeout(120000);
   const userId = await getSeededUserId();
-  await seedActivePlan(userId);
+  const { planId: first } = await seedActivePlan(userId);
 
   // The manual-entry route (T26/T27) still reaches the race form while a plan is active.
   await page.goto("/plan/new?distanceKm=5&timeSec=1197&source=MANUAL");
   await fillRaceForm(page);
   await page.getByRole("button", { name: "Criar plano" }).click();
 
-  await expect(page.locator("main").getByRole("alert")).toContainText("Você já tem um plano ativo");
-  await expect(page.getByRole("heading", { name: "Plano criado" })).toHaveCount(0);
-  expect(await prisma.plan.count({ where: { userId, status: PlanStatus.ACTIVE } })).toBe(1);
+  await expect(page.getByRole("heading", { name: "Plano criado" })).toBeVisible({ timeout: 15000 });
+  expect((await prisma.plan.findUniqueOrThrow({ where: { id: first } })).status).toBe(PlanStatus.PAUSED);
+  const active = await prisma.plan.findMany({ where: { userId, status: PlanStatus.ACTIVE } });
+  expect(active).toHaveLength(1);
+  expect(active[0].id).not.toBe(first);
 });

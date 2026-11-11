@@ -102,3 +102,26 @@ test("the dashboard shows the current week of the plan just followed", async ({ 
   const race = page.getByRole("region", { name: "Próxima prova" });
   await expect(race.getByRole("heading", { level: 2 })).toHaveText("10K");
 });
+
+test("a fourth plan is refused with the 3-plan message", async ({ page }) => {
+  test.setTimeout(120000);
+  const userId = await getSeededUserId();
+  for (const raceInDays of [70, 90, 120]) await seedActivePlan(userId, { raceInDays });
+  const before = await prisma.plan.findMany({ where: { userId }, orderBy: { id: "asc" } });
+
+  await page.goto("/plan/new/vdot?mode=manual");
+  await page.getByLabel("Distância (km)").fill("5");
+  await page.getByLabel("Minutos").fill("19");
+  await page.getByLabel("Segundos").fill("57");
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await expect(page).toHaveURL(/\/plan\/new\?/);
+  await page.getByLabel(/5km/).check();
+  await page.getByLabel("Data da prova").fill(new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10));
+  for (const day of ["Seg", "Qua", "Sáb"]) await page.getByRole("checkbox", { name: day }).check();
+  await page.getByRole("button", { name: "Criar plano" }).click();
+
+  await expect(page.locator("main").getByRole("alert")).toHaveText("Você já tem 3 planos. Exclua um para criar outro.");
+  // Nothing was created and no plan changed status.
+  expect(await prisma.plan.findMany({ where: { userId }, orderBy: { id: "asc" } })).toEqual(before);
+});
+

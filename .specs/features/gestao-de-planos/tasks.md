@@ -315,8 +315,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] e2e: with 3 plans, submitting a new one shows "Você já tem 3 planos. Exclua um para criar outro." and creates nothing
-- [ ] Gate check passes: `npm run build && npm run typecheck && npm run lint && npx playwright test e2e/plans.spec.ts e2e/delete.spec.ts --reporter=list`
+- [x] e2e: with 3 plans, submitting a new one shows "Você já tem 3 planos. Exclua um para criar outro." and creates nothing
+- [x] Gate check passes: `npm run build && npm run typecheck && npm run lint && npx playwright test e2e/plans.spec.ts e2e/delete.spec.ts --reporter=list`
 
 **Tests**: e2e
 **Gate**: build
