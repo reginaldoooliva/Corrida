@@ -264,7 +264,7 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | DEL-09 | P1: Excluir um treino | T7 | Done |
 | DEL-10 | P1: Excluir um treino | T17 | Done |
 | DEL-11 | P1: Excluir um treino | T20 | Done |
-| DEL-12 | P1: Excluir um treino | T23 | Pending |
+| DEL-12 | P1: Excluir um treino | T23 | Done |
 | DEL-13 | P1: Excluir um treino | T22 | Done |
 | RECALC-01 | P1: Recalcular o plano todo | T15 | Done |
 | RECALC-02 | P1: Recalcular o plano todo | T8 | Done |

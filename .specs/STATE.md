@@ -42,4 +42,12 @@
 - **Date**: 2026-11-10
 - **Status**: active
 
+### AD-006
+- **Decision**: Um treino excluído continua excluído quando o plano é recalculado (nova data da prova ou novos dias): o recálculo não recria treino no dia de um excluído (`DEL-12`).
+- **Reason**: O Verifier mostrou que o recálculo recriava o treino excluído e a reavaliação o contava como perdido, o que `DEL-09` proíbe. Decidido pelo agente, com a feature delegada pelo usuário de ponta a ponta; reversível se o usuário preferir que o recálculo refaça a semana inteira.
+- **Trade-off**: A exclusão de um treino não se desfaz: o dia fica sem treino naquela semana, também depois de um recálculo.
+- **Scope**: `gestao-de-planos` (`rebuildWeeks`).
+- **Date**: 2026-11-11
+- **Status**: active
+
 ## Handoff

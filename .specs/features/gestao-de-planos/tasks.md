@@ -505,8 +505,8 @@ T14 → T15 → T16 → T17 → T18 → T19 → T20 → T21 → T22 → T23
 
 **Done when**:
 
-- [ ] Unit: a session deleted in the current week and one in a future week stay deleted after a new race date and after new days; the new days are still added; the week's reassessment does not count the deleted one as missed
-- [ ] Gate check passes: `npx vitest run lib/domain`
+- [x] Unit: a session deleted in the current week and one in a future week stay deleted after a new race date and after new days; the new days are still added; the week's reassessment does not count the deleted one as missed
+- [x] Gate check passes: `npx vitest run lib/domain`
 
 **Tests**: unit
 **Gate**: quick

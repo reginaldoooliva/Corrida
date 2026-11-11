@@ -1037,6 +1037,34 @@ describe("plan-lifecycle", () => {
       expect(db.weeks.filter((w) => w.planId === planId).map((w) => w.weekNumber).sort()).toEqual([1, 2, 3]);
     });
 
+    it("editPlan never brings back a deleted session, with a new race date or new days", async () => {
+      const day = (s: Row) => (s.date as Date).toISOString().slice(0, 10);
+      // Week 3 is Sat 2026-11-07 (logged), Mon 2026-11-09 and Wed 2026-11-11; week 5 starts 2026-11-21.
+      const monday = sessionsOf(CURRENT_WEEK).find((s) => day(s) === "2026-11-09")!;
+      const [, week5Mon] = sessionsOf(5);
+      expect(day(week5Mon)).toBe("2026-11-23");
+      await deleteSession("user-1", monday.id as string);
+      await deleteSession("user-1", week5Mon.id as string);
+
+      // A new race date, same days: neither deleted day comes back, every other day is there.
+      await editPlan(planId, { raceDate: new Date("2027-02-06T00:00:00Z"), days: [1, 3, 6] }, EDIT_DAY);
+      expect(sessionsOf(CURRENT_WEEK).map(day)).toEqual(["2026-11-07", "2026-11-11"]);
+      expect(sessionsOf(5).map(day)).toEqual(["2026-11-21", "2026-11-25"]);
+
+      // New days (Mon/Wed/Fri/Sat): the new Friday is added, the deleted Mondays stay deleted.
+      await editPlan(planId, { raceDate: new Date("2027-02-06T00:00:00Z"), days: [1, 3, 5, 6] }, EDIT_DAY);
+      expect(sessionsOf(CURRENT_WEEK).map(day)).toEqual(["2026-11-07", "2026-11-11", "2026-11-13"]);
+      expect(sessionsOf(5).map(day)).toEqual(["2026-11-21", "2026-11-25", "2026-11-27"]);
+      expect(sessionsOf(6).map(day)).toEqual(["2026-11-28", "2026-11-30", "2026-12-02", "2026-12-04"]);
+
+      // So the reassessment of week 3 never counts the deleted Monday as missed (DEL-09).
+      for (const s of sessionsOf(CURRENT_WEEK).filter((s) => !logOf(s))) {
+        db.logs.push({ id: `log-${s.id}`, sessionId: s.id, actualPaceSecPerKm: s.plannedPaceSecPerKm,
+          actualDistanceKm: s.plannedDistanceKm, actualDurationMin: s.plannedDurationMin, rpe: 6, notes: null });
+      }
+      expect(await reassessIfDue(weekNo(CURRENT_WEEK).id as string)).toMatchObject({ missedTriggered: false });
+    });
+
     it("editPlan with an earlier race date drops the weeks past the new end", async () => {
       // 2027-01-02 is 10 weeks from the plan start.
       await editPlan(planId, { raceDate: new Date("2027-01-02T00:00:00Z"), days: NEW_DAYS }, EDIT_DAY);

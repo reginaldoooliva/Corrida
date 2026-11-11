@@ -304,7 +304,7 @@ export async function recalculateFromCurrentWeek(
 // a day that already has a logged session gets no other (RECALC-02). Missing weeks are created;
 // weeks past the new end lose their unlogged sessions, and go when nothing logged is left in them.
 async function rebuildWeeks(
-  plan: { id: string; startDate: Date; currentVdot: number },
+  plan: { id: string; startDate: Date; currentVdot: number; daysPerWeek: number[] },
   opts: {
     fromWeek: number;
     totalWeeks: number;
@@ -356,10 +356,18 @@ async function rebuildWeeks(
       const loggedDays = new Set(
         existing.sessions.filter((s) => s.workoutLog).map((s) => utcDayNumber(s.date)),
       );
+      // Spec DEL-12: a week laid out on the plan's days has a session on each of them, so one of
+      // those days without a session is a session the user deleted - it is not drafted again.
+      // (A week still on older days, from an earlier change, has nothing deleted to tell apart.)
+      const oldDays = new Set(plan.daysPerWeek);
+      const sessionDays = new Set(existing.sessions.map((s) => utcDayNumber(s.date)));
+      const onOldDays = existing.sessions.every((s) => oldDays.has(s.date.getUTCDay()));
+      const deleted = (d: Date) =>
+        onOldDays && oldDays.has(d.getUTCDay()) && !sessionDays.has(utcDayNumber(d));
       await tx.week.update({ where: { id: existing.id }, data: { phase: assignment.phase } });
       await tx.session.createMany({
         data: drafts
-          .filter((d) => !loggedDays.has(utcDayNumber(d.date)))
+          .filter((d) => !loggedDays.has(utcDayNumber(d.date)) && !deleted(d.date))
           .map((d) => ({ ...d, weekId: existing.id })),
       });
     }
