@@ -58,3 +58,47 @@ test("the plans screen lists each active and paused plan with race, date, weeks 
   // Nothing spills past the phone's width.
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
+
+test("following a paused plan makes it active and pauses the other", async ({ page }) => {
+  const userId = await getSeededUserId();
+  const { planId: tenK } = await seedActivePlan(userId);
+  const { planId: half } = await seedActivePlan(userId, { raceInDays: 120, raceType: RaceType.HALF });
+
+  await page.goto("/plans");
+  const items = page.getByRole("list", { name: "Seus planos" }).getByRole("listitem");
+  // Only the paused plan offers to be followed.
+  await expect(items.filter({ hasText: "Meia maratona" }).getByRole("button", { name: "Seguir este plano" })).toHaveCount(0);
+  await items.filter({ hasText: "10K (10km)" }).getByRole("button", { name: "Seguir este plano" }).click();
+
+  await expect(items.filter({ hasText: "10K (10km)" }).getByText("Seguindo", { exact: true })).toBeVisible();
+  await expect(items.filter({ hasText: "Meia maratona" }).getByText("Pausado", { exact: true })).toBeVisible();
+  const statuses = await prisma.plan.findMany({ where: { userId }, select: { id: true, status: true } });
+  expect(Object.fromEntries(statuses.map((p) => [p.id, p.status]))).toEqual({
+    [tenK]: PlanStatus.ACTIVE,
+    [half]: PlanStatus.PAUSED,
+  });
+});
+
+test("the dashboard shows the current week of the plan just followed", async ({ page }) => {
+  const userId = await getSeededUserId();
+  // The 10K started 10 days ago (its week 2 is current); the half marathon starts today.
+  await seedActivePlan(userId, { daysAgo: 10 });
+  await seedActivePlan(userId, { daysAgo: 0, raceInDays: 120, raceType: RaceType.HALF });
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Semana 1");
+  await expect(page.getByRole("region", { name: "Próxima prova" })).toContainText("Meia maratona");
+
+  await page.goto("/plans");
+  await page
+    .getByRole("list", { name: "Seus planos" })
+    .getByRole("listitem")
+    .filter({ hasText: "10K (10km)" })
+    .getByRole("button", { name: "Seguir este plano" })
+    .click();
+  await expect(page.getByRole("listitem").filter({ hasText: "10K (10km)" }).getByText("Seguindo")).toBeVisible();
+  await page.goto("/dashboard");
+
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Semana 2");
+  const race = page.getByRole("region", { name: "Próxima prova" });
+  await expect(race.getByRole("heading", { level: 2 })).toHaveText("10K");
+});

@@ -277,8 +277,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] e2e: following switches the statuses and the dashboard shows the followed plan's current week
-- [ ] Gate check passes: full gate with `e2e/plans.spec.ts`
+- [x] e2e: following switches the statuses and the dashboard shows the followed plan's current week
+- [x] Gate check passes: full gate with `e2e/plans.spec.ts`
 
 **Tests**: e2e
 **Gate**: full
