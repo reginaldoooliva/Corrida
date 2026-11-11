@@ -144,8 +144,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] Unit tests for each requirement above, the DB unchanged on every refusal
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Unit tests for each requirement above, the DB unchanged on every refusal
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
 
 **Tests**: unit
 **Gate**: quick

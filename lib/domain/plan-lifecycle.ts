@@ -148,6 +148,52 @@ export async function createNewPlan(input: CreatePlanInput): ReturnType<typeof c
   }
 }
 
+export class PlanNotFoundError extends Error {
+  constructor() {
+    super("Plano não encontrado.");
+    this.name = "PlanNotFoundError";
+  }
+}
+
+// Spec PLANS-06/09/10/13/14: the user's paused plan becomes the followed one and the plan followed
+// until now is paused. Its weeks that ended while it sat paused are settled without an adjustment
+// (reassessedAt only, no WeeklyAdjustment), so returning to it never cuts the load for sessions that
+// were never meant to be run. A plan whose race has passed is archived instead.
+export async function followPlan(
+  userId: string,
+  planId: string,
+  today: Date,
+): Promise<"active" | "archived"> {
+  const plan = await prisma.plan.findFirst({
+    where: { id: planId, userId, status: { in: KEPT_STATUSES } },
+  });
+  if (!plan) throw new PlanNotFoundError();
+  if (utcDayNumber(plan.raceDate) < utcDayNumber(today)) {
+    await prisma.plan.update({ where: { id: planId }, data: { status: PlanStatus.ARCHIVED } });
+    return "archived";
+  }
+  if (plan.status === PlanStatus.ACTIVE) return "active";
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.plan.updateMany({
+        where: { userId, status: PlanStatus.ACTIVE },
+        data: { status: PlanStatus.PAUSED },
+      });
+      await tx.plan.update({ where: { id: planId }, data: { status: PlanStatus.ACTIVE } });
+      // Same "ended" rule as isWeekDue: the week's last day is before today.
+      await tx.week.updateMany({
+        where: { planId, reassessedAt: null, endDate: { lt: startOfDay(today) } },
+        data: { reassessedAt: new Date() },
+      });
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) throw new PlanConflictError();
+    throw error;
+  }
+  return "active";
+}
+
 export const RACE_DATE_ERROR = "A data da prova precisa ser depois da semana de treino atual.";
 
 // Spec EDIT-01..03: rebuild the plan from the week containing `today` onwards with the plan's

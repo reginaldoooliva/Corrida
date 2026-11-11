@@ -132,6 +132,11 @@ const { db, emptyStore, modelsFor } = vi.hoisted(() => {
           Object.assign(week, data);
           return clone(week);
         },
+        updateMany: async ({ where, data }: { where: Row; data: Row }) => {
+          const hit = store.weeks.filter(matches(where));
+          for (const week of hit) Object.assign(week, data);
+          return { count: hit.length };
+        },
         deleteMany: async ({ where }: { where: { id: { in: string[] } } }) => {
           // Mirrors the foreign keys: a week still holding sessions cannot be deleted.
           const doomed = store.weeks.filter(idIn(where));
@@ -194,11 +199,13 @@ import {
   archiveIfPast,
   archivePastPlans,
   createNewPlan,
+  followPlan,
   initialVdotForNewPlan,
   isPlausibleRaceTime,
   PLAN_LIMIT_ERROR,
   PlanConflictError,
   PlanLimitError,
+  PlanNotFoundError,
   recalculateFromCurrentWeek,
   recordRaceResult,
 } from "./plan-lifecycle";
@@ -446,6 +453,93 @@ describe("plan-lifecycle", () => {
       expect(db.vdotHistory).toEqual([
         expect.objectContaining({ planId: plan.id, source: VdotSource.MANUAL }),
       ]);
+    });
+  });
+
+  describe("followPlan", () => {
+    // A 10km plan started 2026-10-24, paused when a second plan was created; "today" is 20 days
+    // after the start, so week 1 (ends 10-30) and week 2 (ends 11-06) ended while it was paused and
+    // week 3 ends today.
+    const PLAN_START = new Date("2026-10-24T00:00:00Z");
+    const FOLLOW_DAY = new Date("2026-11-13T09:00:00Z");
+    const planInput = {
+      userId: "user-1",
+      raceType: RaceType.TEN_K,
+      raceDate: new Date("2027-01-16T00:00:00Z"),
+      daysPerWeek: [1, 3, 6] as Weekday[],
+      vdotSource: VdotSource.MANUAL,
+      result: { distanceKm: 5, timeSec: 21 * 60 + 25 },
+    };
+    let pausedId: string;
+    let activeId: string;
+
+    beforeEach(async () => {
+      pausedId = (await createNewPlan({ ...planInput, today: PLAN_START })).plan.id;
+      activeId = (await createNewPlan({ ...planInput, today: new Date("2026-11-10T00:00:00Z") })).plan.id;
+    });
+
+    const statusOf = (id: string) => db.plans.find((p) => p.id === id)?.status;
+
+    it("followPlan makes the paused plan active and the active one paused", async () => {
+      expect([statusOf(pausedId), statusOf(activeId)]).toEqual([PlanStatus.PAUSED, PlanStatus.ACTIVE]);
+
+      expect(await followPlan("user-1", pausedId, FOLLOW_DAY)).toBe("active");
+
+      expect([statusOf(pausedId), statusOf(activeId)]).toEqual([PlanStatus.ACTIVE, PlanStatus.PAUSED]);
+    });
+
+    it("followPlan marks the plan's ended weeks reassessed without a WeeklyAdjustment", async () => {
+      const sessionsBefore = structuredClone(db.sessions);
+
+      await followPlan("user-1", pausedId, FOLLOW_DAY);
+
+      const weeks = db.weeks
+        .filter((w) => w.planId === pausedId)
+        .sort((a, b) => (a.weekNumber as number) - (b.weekNumber as number));
+      expect(weeks[0].reassessedAt).toBeInstanceOf(Date);
+      expect(weeks[1].reassessedAt).toBeInstanceOf(Date);
+      // Week 3 ends today: still open, and every later week too.
+      expect(weeks.slice(2).every((w) => w.reassessedAt === null)).toBe(true);
+      expect(db.adjustments).toEqual([]);
+      expect(db.sessions).toEqual(sessionsBefore);
+      // The plan that was paused instead keeps its weeks as they were.
+      expect(db.weeks.filter((w) => w.planId === activeId).every((w) => w.reassessedAt === null)).toBe(true);
+    });
+
+    it("followPlan archives a paused plan whose race has passed instead of following it", async () => {
+      db.plans.find((p) => p.id === pausedId)!.raceDate = new Date("2026-11-12T00:00:00Z");
+
+      expect(await followPlan("user-1", pausedId, FOLLOW_DAY)).toBe("archived");
+
+      expect([statusOf(pausedId), statusOf(activeId)]).toEqual([PlanStatus.ARCHIVED, PlanStatus.ACTIVE]);
+    });
+
+    it("followPlan refuses a concurrent second activation without changing anything", async () => {
+      const before = structuredClone(db);
+      vi.spyOn(prisma, "$transaction").mockRejectedValueOnce(
+        Object.assign(new Error("Unique constraint failed on the fields: (`userId`)"), { code: "P2002" }),
+      );
+
+      await expect(followPlan("user-1", pausedId, FOLLOW_DAY)).rejects.toBeInstanceOf(PlanConflictError);
+
+      expect(db).toEqual(before);
+      expect(db.plans.filter((p) => p.status === PlanStatus.ACTIVE).map((p) => p.id)).toEqual([activeId]);
+    });
+  });
+
+  describe("refusals", () => {
+    it("followPlan, deletePlan and deleteSession refuse an id that is not the user's or does not exist", async () => {
+      const mine = seedPlan({ status: PlanStatus.PAUSED });
+      const theirs = seedPlan({ status: PlanStatus.PAUSED, userId: "user-2" });
+      const archived = seedPlan({ status: PlanStatus.ARCHIVED });
+      const before = structuredClone(db);
+
+      for (const id of [theirs.id as string, "no-such-plan", archived.id as string]) {
+        await expect(followPlan("user-1", id, TODAY)).rejects.toBeInstanceOf(PlanNotFoundError);
+      }
+      await expect(followPlan("user-2", mine.id as string, TODAY)).rejects.toThrow("Plano não encontrado.");
+
+      expect(db).toEqual(before);
     });
   });
 

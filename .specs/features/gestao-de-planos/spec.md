@@ -237,11 +237,11 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | PLANS-06 | P1: Até 3 planos | Design | Pending |
 | PLANS-07 | P1: Até 3 planos | Design | Pending |
 | PLANS-08 | P1: Até 3 planos | Design | Pending |
-| PLANS-09 | P1: Até 3 planos | Design | Pending |
+| PLANS-09 | P1: Até 3 planos | T4 | Done |
 | PLANS-10 | P1: Até 3 planos | Design | Pending |
 | PLANS-11 | P1: Até 3 planos | Design | Pending |
 | PLANS-12 | P1: Até 3 planos | Design | Pending |
-| PLANS-13 | Edge Cases | Design | Pending |
+| PLANS-13 | Edge Cases | T4 | Done |
 | PLANS-14 | Edge Cases | Design | Pending |
 | DEL-01 | P1: Excluir um plano | Design | Pending |
 | DEL-02 | P1: Excluir um plano | Design | Pending |
