@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "promote_threshold": 2,
+  "window_days": 45,
+  "quarantine_threshold": 2,
+  "next_id": 8,
+  "lessons": [
+    {
+      "id": "L-001",
+      "key": "weak_test::prove a stored value by calling the app function that writes it never by recomputing it inside the test",
+      "text": "Prove a stored value by calling the app function that writes it, never by recomputing it inside the test",
+      "signal": "weak_test",
+      "scope": "auth",
+      "status": "candidate",
+      "features": [
+        "coach-virtual"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C4 lib/domain/auth.test.ts (auth)"
+      ],
+      "created": "2026-11-11T00:12:34Z",
+      "last_seen": "2026-11-11T00:12:34Z"
+    },
+    {
+      "id": "L-002",
+      "key": "weak_test::when a criterion lists the fields a row shows assert every listed field per row not just one identifying field",
+      "text": "When a criterion lists the fields a row shows, assert every listed field per row, not just one identifying field",
+      "signal": "weak_test",
+      "scope": "e2e",
+      "status": "candidate",
+      "features": [
+        "coach-virtual"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C17 e2e/dashboard.spec.ts (e2e)"
+      ],
+      "created": "2026-11-11T00:12:34Z",
+      "last_seen": "2026-11-11T00:12:34Z"
+    },
+    {
+      "id": "L-003",
+      "key": "weak_test::when a criterion says one value appears beside another assert both values in the same element",
+      "text": "When a criterion says one value appears beside another, assert both values in the same element",
+      "signal": "weak_test",
+      "scope": "e2e",
+      "status": "candidate",
+      "features": [
+        "coach-virtual"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C19 e2e/dashboard.spec.ts (e2e)"
+      ],
+      "created": "2026-11-11T00:12:34Z",
+      "last_seen": "2026-11-11T00:12:34Z"
+    },
+    {
+      "id": "L-004",
+      "key": "weak_test::to prove an effect happens before rendering assert the rendered page shows the changed values not just that a record exists",
+      "text": "To prove an effect happens before rendering, assert the rendered page shows the changed values, not just that a record exists",
+      "signal": "weak_test",
+      "scope": "e2e",
+      "status": "candidate",
+      "features": [
+        "coach-virtual"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C20 e2e/dashboard.spec.ts (e2e)"
+      ],
+      "created": "2026-11-11T00:12:35Z",
+      "last_seen": "2026-11-11T00:12:35Z"
+    },
+    {
+      "id": "L-005",
+      "key": "weak_test::give excluded rows fixture values that would change the result if they were wrongly included",
+      "text": "Give excluded rows fixture values that would change the result if they were wrongly included",
+      "signal": "weak_test",
+      "scope": "domain",
+      "status": "candidate",
+      "features": [
+        "coach-virtual"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C27 lib/domain/weekly-adjustment.test.ts (domain)"
+      ],
+      "created": "2026-11-11T00:12:35Z",
+      "last_seen": "2026-11-11T00:12:35Z"
+    },
+    {
+      "id": "L-006",
+      "key": "weak_test::prove a derived formula at two or more inputs and for every output the criterion names not one table row",
+      "text": "Prove a derived formula at two or more inputs and for every output the criterion names, not one table row",
+      "signal": "weak_test",
+      "scope": "domain",
+      "status": "candidate",
+      "features": [
+        "coach-virtual"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C15 lib/domain/vdot.test.ts (domain)"
+      ],
+      "created": "2026-11-11T00:12:35Z",
+      "last_seen": "2026-11-11T00:12:35Z"
+    },
+    {
+      "id": "L-007",
+      "key": "spec_precision_gap::pin date boundary rules to a test at the boundary day itself and state whether an end date is inclusive",
+      "text": "Pin date-boundary rules to a test at the boundary day itself, and state whether an end date is inclusive",
+      "signal": "spec_precision_gap",
+      "scope": "domain",
+      "status": "candidate",
+      "features": [
+        "coach-virtual"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "SPEC_DEVIATION lib/domain/weekly-adjustment.ts isWeekDue (domain)"
+      ],
+      "created": "2026-11-11T00:12:35Z",
+      "last_seen": "2026-11-11T00:12:35Z"
+    }
+  ]
+}

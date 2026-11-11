@@ -1397,7 +1397,8 @@ pre-HEAD 2df1b70 - returned, all complete, Build gate green. Batch 4 (Phase 4+5:
 dispatched 2026-11-07, pre-HEAD 13baa4e - returned, all complete, Build gate green. Batch 5
 (Phase 6+7+8: T26-T32) dispatched 2026-11-07, pre-HEAD a59955a - worker did not return (session
 ended after T29 commit `71ba3d8`, T30 left uncommitted in the tree); orchestrator resumed T30-T32
-inline in a new session 2026-11-07, with the user's go-ahead.
+inline in a new session 2026-11-07, with the user's go-ahead. Verifier (independent sub-agent, validate.md) dispatched 2026-11-10 at HEAD bde8a32
+(proofs.md 58 pass, 0 fail), diff range 4ebd525..bde8a32; no criterion cites a capture, so no screens sub-agent.
 
 T32 notes (2026-11-07): touched two files beyond its **Where** - `lib/domain/workout-log.ts` gained
 `deleteWorkoutLog` (AD-001: the action stays a thin adapter) and `app/dashboard/page.tsx` now links
