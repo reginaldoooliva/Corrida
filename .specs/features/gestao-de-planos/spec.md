@@ -139,6 +139,8 @@ conte contra mim no ajuste semanal.
    `ADJ-01` só com as sessões que restam, sem contar a excluída como perdida. `DEL-09`
 4. IF o usuário tenta excluir o único treino que resta numa semana THEN the system SHALL recusar e
    mostrar "A semana precisa de pelo menos um treino." `DEL-10`
+5. WHEN a confirmação de "Excluir plano" ou de "Excluir treino" abre THEN the system SHALL mostrá-la
+   centralizada na tela, inteira dentro dela, numa tela de 390px de largura. `DEL-11`
 
 **Independent Test**: Numa semana com 4 treinos, excluir um não registrado, deixar a semana
 terminar com os outros 3 registrados, e ver que o sinal de treinos perdidos fica falso.
@@ -242,7 +244,7 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | PLANS-11 | P1: Até 3 planos | T14 | Done |
 | PLANS-12 | P1: Até 3 planos | T15 | Done |
 | PLANS-13 | Edge Cases | T4 | Done |
-| PLANS-14 | Edge Cases | Design | Pending |
+| PLANS-14 | Edge Cases | T7 | Done |
 | DEL-01 | P1: Excluir um plano | T12 | Done |
 | DEL-02 | P1: Excluir um plano | T12 | Done |
 | DEL-03 | P1: Excluir um plano | T12 | Done |
@@ -253,6 +255,7 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | DEL-08 | P1: Excluir um treino | T17 | Done |
 | DEL-09 | P1: Excluir um treino | T7 | Done |
 | DEL-10 | P1: Excluir um treino | T17 | Done |
+| DEL-11 | P1: Excluir um treino | T20 | Done |
 | RECALC-01 | P1: Recalcular o plano todo | T15 | Done |
 | RECALC-02 | P1: Recalcular o plano todo | T8 | Done |
 | RECALC-03 | P1: Recalcular o plano todo | T8 | Done |

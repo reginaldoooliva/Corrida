@@ -670,6 +670,8 @@ legend {
 /* Confirmation of a destructive action (ConfirmDialog): a centered card over a dimmed page, as wide
    as a phone allows. */
 .dialog {
+  /* The global reset zeroes every margin; a modal <dialog> is centered by its auto margins. */
+  margin: auto;
   width: min(360px, calc(100vw - 32px));
   padding: 20px;
   border: 1px solid var(--outline-variant);

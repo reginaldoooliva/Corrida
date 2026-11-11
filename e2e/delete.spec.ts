@@ -203,3 +203,35 @@ test("deleting the last session of a week is refused", async ({ page }) => {
   await expect(page.locator("main").getByRole("alert")).toHaveText("A semana precisa de pelo menos um treino.");
   expect(await prisma.session.count({ where: { id: last.id } })).toBe(1);
 });
+
+test("the delete confirmation sits centered and whole on a phone screen", async ({ page }) => {
+  const { planId } = await seedActivePlan(await getSeededUserId());
+  const [session] = await currentWeekSessions(planId);
+  const centeredAndWhole = async (name: string) => {
+    const dialog = page.getByRole("dialog", { name });
+    const box = (await dialog.boundingBox())!;
+    const { width, height } = page.viewportSize()!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    expect(box.y + box.height).toBeLessThanOrEqual(height);
+    // Centered: the same space on the left and the right, above and below.
+    expect(Math.abs(box.x - (width - box.x - box.width))).toBeLessThanOrEqual(1);
+    expect(Math.abs(box.y - (height - box.y - box.height))).toBeLessThanOrEqual(1);
+    for (const button of await dialog.getByRole("button").all()) {
+      const b = (await button.boundingBox())!;
+      expect(b.x).toBeGreaterThanOrEqual(box.x);
+      expect(b.x + b.width).toBeLessThanOrEqual(box.x + box.width);
+    }
+  };
+
+  await page.goto("/plans");
+  await page.getByRole("button", { name: "Excluir plano" }).click();
+  await centeredAndWhole("Excluir plano");
+
+  // The session screen is longer than the phone: its button is reached by scrolling.
+  await page.goto(`/dashboard/log/${session.id}`);
+  await page.getByRole("button", { name: "Excluir treino" }).scrollIntoViewIfNeeded();
+  await page.getByRole("button", { name: "Excluir treino" }).click();
+  await centeredAndWhole("Excluir treino");
+});

@@ -68,7 +68,7 @@ T10 → T11 → T12 → T13
 ### Phase 4: Existing screens
 
 ```
-T14 → T15 → T16 → T17 → T18 → T19
+T14 → T15 → T16 → T17 → T18 → T19 → T20
 ```
 
 ---
@@ -438,6 +438,25 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 ---
 
+### T20: Center the delete confirmation
+
+**What**: The `.dialog` keeps the `<dialog>` centered (`margin: auto`), which the global `* { margin: 0 }` reset removed. Found walking the session screen at 390px: the confirmation sat at the top-left corner with "Excluir" cut off.
+**Where**: `app/globals.css`
+**Depends on**: T19
+**Reuses**: `.dialog`
+**Requirement**: DEL-11
+
+**Done when**:
+
+- [x] e2e: both confirmations sit centered and whole on a 390px screen, the session one opened after scrolling
+- [x] Gate check passes: full gate with `e2e/delete.spec.ts`
+
+**Tests**: e2e
+**Gate**: full
+**Commit**: `fix(plans): center the delete confirmation`
+
+---
+
 ## Checks
 
 **Run unit**: `npx vitest run lib/domain --reporter=verbose`
@@ -546,6 +565,9 @@ Proof: run e2e | ok notes.spec.ts › editing a log shows its saved note in the 
 **C34** - A logged session with a note shows the note on its dashboard card (NOTE-05, AC 5)
 Proof: run e2e | ok notes.spec.ts › the dashboard card shows the note of a logged session
 
+**C35** - Both delete confirmations sit centered and whole on a 390px screen (DEL-11, AC 5)
+Proof: run e2e | ok delete.spec.ts › the delete confirmation sits centered and whole on a phone screen
+
 ---
 
 ## Handoff
@@ -566,7 +588,7 @@ Phase 1 → Phase 2 → Phase 3 → Phase 4
 Phase 1 (Data model):        T1
 Phase 2 (Domain):            T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9
 Phase 3 (Plans screen):      T10 → T11 → T12 → T13
-Phase 4 (Existing screens):  T14 → T15 → T16 → T17 → T18 → T19
+Phase 4 (Existing screens):  T14 → T15 → T16 → T17 → T18 → T19 → T20
 ```
 
 Execution is strictly sequential - a single agent works one task at a time, in order.
