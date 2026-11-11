@@ -598,7 +598,7 @@ The feature's live state, written as it happens - a compaction gives no warning.
 
 **Settled mid-build:** Execução inline pelo agente orquestrador, sem batch workers: o usuário delegou a feature de ponta a ponta ("ele aprova todos os commit e push que forem perguntados").
 **Dispatched:** none
-**Walked:** none
+**Walked:** 2026-11-11, navegador do app a 390x844, `npm run start` com a conta semeada (dev DB). Dados: um 10K seguido começado há 10 dias (seg/qua/sáb), uma meia maratona pausada e um 5K arquivado, semeados por script com `e2e/helpers.ts` (`seedActivePlan`, `logWorkout`). Até 3 planos: /plans lista o 10K "Seguindo" (20 jan 2027, 11 semanas) e a meia "Pausado" (11 mar 2027, 17 semanas); "Seguir este plano" troca os dois e o painel mostra a semana do plano seguido. Observação: o card de Seg 09/11 no painel mostra "Calor forte, segurei o ritmo."; registrar Qua 11/11 em /dashboard/log/<id> com observação a mostra no card. Excluir treino: em /dashboard/log/<id> de Sáb 14/11, "Excluir treino" abre a confirmação com o texto da spec - estava no canto superior esquerdo com "Excluir" cortado (virou DEL-11/T20, corrigido); confirmar volta ao painel com "1 de 2 treinos". Recalcular: em /settings, nova data 2027-02-10 → painel "Semana 2 de 14", 10 fev 2027, os dois registros e observações mantidos (o Sáb excluído volta como rascunho, pois a data nova regenera os dias sem registro desde a semana 1). Histórico: com três planos /history ficava com 674px e cortava os gráficos (virou PLANS-15/T21, corrigido); a aba "5km - 2027-01-10 (arquivado)" mostra "Excluir plano", a confirmação aparece centralizada, e confirmar tira o 5K das abas. O dev DB fica com o 10K seguido e a meia pausada.
 
 ---
 
