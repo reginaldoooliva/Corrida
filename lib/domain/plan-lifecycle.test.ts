@@ -1025,6 +1025,16 @@ describe("plan-lifecycle", () => {
 
       expect(RACE_DATE_ERROR).toBe("A data da prova precisa ser depois da semana de treino atual.");
       expect(db).toEqual(before);
+
+      // The boundary: 2026-11-13 leaves 2 weeks (one short of the current week 3) and is refused;
+      // 2026-11-14 leaves exactly 3 and is accepted.
+      await expect(
+        editPlan(planId, { raceDate: new Date("2026-11-13T00:00:00Z"), days: NEW_DAYS }, EDIT_DAY),
+      ).rejects.toThrow(RACE_DATE_ERROR);
+      expect(db).toEqual(before);
+      await editPlan(planId, { raceDate: new Date("2026-11-14T00:00:00Z"), days: NEW_DAYS }, EDIT_DAY);
+      expect(db.plans[0].raceDate).toEqual(new Date("2026-11-14T00:00:00Z"));
+      expect(db.weeks.filter((w) => w.planId === planId).map((w) => w.weekNumber).sort()).toEqual([1, 2, 3]);
     });
 
     it("editPlan with an earlier race date drops the weeks past the new end", async () => {
