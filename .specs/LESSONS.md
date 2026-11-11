@@ -56,6 +56,30 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: SPEC_DEVIATION lib/domain/weekly-adjustment.ts isWeekDue (domain)
 - last seen: 2026-11-11T00:12:35Z
 
+### L-008 - Test a numeric limit on both sides of the boundary, not one case far from it
+- signal: `weak_test` · recurrence: 1 feature(s) · scope: `domain` · harmful: 0
+- features: gestao-de-planos
+- evidence: C29 plan-lifecycle.test.ts editPlan refuses a race date (domain)
+- last seen: 2026-11-11T05:10:02Z
+
+### L-009 - Assert a layout rule by measuring the element it names, never by excluding that element from the check
+- signal: `weak_test` · recurrence: 1 feature(s) · scope: `e2e` · harmful: 0
+- features: gestao-de-planos
+- evidence: C36 e2e/plans.spec.ts history tabs (e2e)
+- last seen: 2026-11-11T05:10:02Z
+
+### L-010 - When rows can be deleted, match related rows by key such as date, never by list position
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `domain` · harmful: 0
+- features: gestao-de-planos
+- evidence: DEL-12/DEL-13 weekly-adjustment.ts applyDecision maintain (domain)
+- last seen: 2026-11-11T05:10:02Z
+
+### L-011 - Count user text length in graphemes after NFC, not in UTF-16 units
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `validation` · harmful: 0
+- features: gestao-de-planos
+- evidence: NOTE-02 workout-log.ts parseNotes (validation)
+- last seen: 2026-11-11T05:10:02Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

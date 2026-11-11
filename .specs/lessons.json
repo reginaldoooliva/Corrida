@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 8,
+  "next_id": 12,
   "lessons": [
     {
       "id": "L-001",
@@ -130,6 +130,78 @@
       ],
       "created": "2026-11-11T00:12:35Z",
       "last_seen": "2026-11-11T00:12:35Z"
+    },
+    {
+      "id": "L-008",
+      "key": "weak_test::test a numeric limit on both sides of the boundary not one case far from it",
+      "text": "Test a numeric limit on both sides of the boundary, not one case far from it",
+      "signal": "weak_test",
+      "scope": "domain",
+      "status": "candidate",
+      "features": [
+        "gestao-de-planos"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C29 plan-lifecycle.test.ts editPlan refuses a race date (domain)"
+      ],
+      "created": "2026-11-11T05:10:02Z",
+      "last_seen": "2026-11-11T05:10:02Z"
+    },
+    {
+      "id": "L-009",
+      "key": "weak_test::assert a layout rule by measuring the element it names never by excluding that element from the check",
+      "text": "Assert a layout rule by measuring the element it names, never by excluding that element from the check",
+      "signal": "weak_test",
+      "scope": "e2e",
+      "status": "candidate",
+      "features": [
+        "gestao-de-planos"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "C36 e2e/plans.spec.ts history tabs (e2e)"
+      ],
+      "created": "2026-11-11T05:10:02Z",
+      "last_seen": "2026-11-11T05:10:02Z"
+    },
+    {
+      "id": "L-010",
+      "key": "ac_gap::when rows can be deleted match related rows by key such as date never by list position",
+      "text": "When rows can be deleted, match related rows by key such as date, never by list position",
+      "signal": "ac_gap",
+      "scope": "domain",
+      "status": "candidate",
+      "features": [
+        "gestao-de-planos"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "DEL-12/DEL-13 weekly-adjustment.ts applyDecision maintain (domain)"
+      ],
+      "created": "2026-11-11T05:10:02Z",
+      "last_seen": "2026-11-11T05:10:02Z"
+    },
+    {
+      "id": "L-011",
+      "key": "ac_gap::count user text length in graphemes after nfc not in utf 16 units",
+      "text": "Count user text length in graphemes after NFC, not in UTF-16 units",
+      "signal": "ac_gap",
+      "scope": "validation",
+      "status": "candidate",
+      "features": [
+        "gestao-de-planos"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "NOTE-02 workout-log.ts parseNotes (validation)"
+      ],
+      "created": "2026-11-11T05:10:02Z",
+      "last_seen": "2026-11-11T05:10:02Z"
     }
   ]
 }
