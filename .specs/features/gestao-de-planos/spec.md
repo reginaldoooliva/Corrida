@@ -240,7 +240,7 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | PLANS-09 | P1: Até 3 planos | T4 | Done |
 | PLANS-10 | P1: Até 3 planos | T14 | Done |
 | PLANS-11 | P1: Até 3 planos | T14 | Done |
-| PLANS-12 | P1: Até 3 planos | Design | Pending |
+| PLANS-12 | P1: Até 3 planos | T15 | Done |
 | PLANS-13 | Edge Cases | T4 | Done |
 | PLANS-14 | Edge Cases | Design | Pending |
 | DEL-01 | P1: Excluir um plano | T12 | Done |
@@ -253,7 +253,7 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | DEL-08 | P1: Excluir um treino | Design | Pending |
 | DEL-09 | P1: Excluir um treino | T7 | Done |
 | DEL-10 | P1: Excluir um treino | Design | Pending |
-| RECALC-01 | P1: Recalcular o plano todo | Design | Pending |
+| RECALC-01 | P1: Recalcular o plano todo | T15 | Done |
 | RECALC-02 | P1: Recalcular o plano todo | T8 | Done |
 | RECALC-03 | P1: Recalcular o plano todo | T8 | Done |
 | RECALC-04 | P1: Recalcular o plano todo | T8 | Done |

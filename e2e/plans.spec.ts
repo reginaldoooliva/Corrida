@@ -178,3 +178,16 @@ test("with only paused plans the dashboard shows the empty state linking to the 
   await expect(page.getByRole("link", { name: "Criar um novo plano" })).toHaveAttribute("href", "/plan/new");
 });
 
+test("settings links to the plans screen", async ({ page }) => {
+  // Without a followed plan...
+  await page.goto("/settings");
+  await expect(page.getByRole("link", { name: /^Planos/ })).toHaveAttribute("href", "/plans");
+
+  // ...and with one.
+  await seedActivePlan(await getSeededUserId());
+  await page.goto("/settings");
+  await expect(page.getByRole("region", { name: "Plano ativo" })).toBeVisible();
+  await page.getByRole("link", { name: /^Planos/ }).click();
+  await expect(page).toHaveURL(/\/plans$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Planos" })).toBeVisible();
+});

@@ -353,8 +353,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] `e2e/recalc.spec.ts`: postponing the race rebuilds every week and keeps the logs on their dates; the existing `e2e/settings.spec.ts` still passes
-- [ ] Gate check passes: full gate with `e2e/recalc.spec.ts e2e/settings.spec.ts e2e/plans.spec.ts`
+- [x] `e2e/recalc.spec.ts`: postponing the race rebuilds every week and keeps the logs on their dates; the existing `e2e/settings.spec.ts` still passes
+- [x] Gate check passes: full gate with `e2e/recalc.spec.ts e2e/settings.spec.ts e2e/plans.spec.ts`
 
 **Tests**: e2e
 **Gate**: full

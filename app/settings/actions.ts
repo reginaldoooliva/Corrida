@@ -8,7 +8,7 @@ import { z } from "zod";
 import { appToday } from "@/lib/domain/clock";
 import { getSeededUserId } from "@/lib/domain/auth";
 import type { Weekday } from "@/lib/domain/plan-generator";
-import { recalculateFromCurrentWeek } from "@/lib/domain/plan-lifecycle";
+import { editPlan } from "@/lib/domain/plan-lifecycle";
 import { prisma } from "@/lib/prisma";
 
 const editSchema = z.object({
@@ -20,8 +20,8 @@ function backWithError(message: string): never {
   redirect(`/settings?error=${encodeURIComponent(message)}`);
 }
 
-// Spec SET-02 / EDIT-01..03: a race-date or training-days change from settings goes through the
-// same recalculation as plan editing (T23), and its validation errors are shown as they come.
+// Spec SET-02 / EDIT-01..03 / RECALC-01..05: a race-date or training-days change from settings goes
+// through editPlan, and its validation errors are shown as they come.
 // LIFE-01: only the ACTIVE plan is ever recalculated.
 export async function updatePlanSettings(formData: FormData): Promise<void> {
   const parsed = editSchema.safeParse({
@@ -35,11 +35,7 @@ export async function updatePlanSettings(formData: FormData): Promise<void> {
   if (!plan) redirect("/settings");
 
   try {
-    await recalculateFromCurrentWeek(
-      plan.id,
-      { raceDate: parsed.data.raceDate, days: parsed.data.days as Weekday[] },
-      appToday(),
-    );
+    await editPlan(plan.id, { raceDate: parsed.data.raceDate, days: parsed.data.days as Weekday[] }, appToday());
   } catch (error) {
     backWithError(error instanceof Error ? error.message : "Não foi possível salvar as alterações.");
   }

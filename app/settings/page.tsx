@@ -2,7 +2,7 @@ import { PlanStatus } from "@prisma/client";
 import Link from "next/link";
 
 import { BottomNav } from "@/components/bottom-nav";
-import { SettingsIcon } from "@/components/icons";
+import { ChevronRightIcon, FlagIcon, SettingsIcon } from "@/components/icons";
 import { SubmitButton } from "@/components/submit-button";
 import { getSeededUserId } from "@/lib/domain/auth";
 import { formatIsoDay, RACE_LABEL, WEEKDAY_SHORT as WEEKDAY_LABEL } from "@/lib/format";
@@ -12,6 +12,22 @@ import { updatePlanSettings } from "./actions";
 
 // Reads the active plan on every request (SET-01/03); never a build-time snapshot.
 export const dynamic = "force-dynamic";
+
+// Spec PLANS-12: settings lead to the plans screen, with or without a followed plan.
+function PlansLink() {
+  return (
+    <Link href="/plans" className="choice-card">
+      <span className="icon-badge">
+        <FlagIcon />
+      </span>
+      <span>
+        Planos
+        <small>Siga, pause ou exclua seus planos.</small>
+      </span>
+      <ChevronRightIcon className="chevron" />
+    </Link>
+  );
+}
 
 interface SettingsPageProps {
   searchParams: Promise<{ error?: string }>;
@@ -37,6 +53,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               Criar um novo plano
             </Link>
           </section>
+          <PlansLink />
         </main>
         <BottomNav />
       </>
@@ -73,12 +90,16 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             </div>
           </dl>
         </section>
+        <PlansLink />
 
-        {/* Spec SET-02: change the race date or training days; the plan is recalculated from the
-            current week on (EDIT-01..03). */}
+        {/* Spec SET-02 / RECALC-01: change the race date or training days; a new race date rebuilds
+            the plan from week 1, new days apply from the current week on (EDIT-01..03). */}
         <section aria-labelledby="editar" className="stack">
           <h2 id="editar">Editar plano</h2>
-          <p className="muted">A planilha é recalculada a partir da semana atual; o que você já correu fica.</p>
+          <p className="muted">
+            Uma nova data da prova recalcula o plano desde a semana 1; novos dias valem a partir da semana atual. O
+            que você já correu fica.
+          </p>
           {error && (
             <p role="alert" className="alert">
               {error}
