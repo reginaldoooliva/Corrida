@@ -5,23 +5,13 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getSeededUserId } from "@/lib/domain/auth";
+import { paceFromRun } from "@/lib/domain/pace";
 import { deleteSession } from "@/lib/domain/plan-lifecycle";
 import { deleteWorkoutLog, saveWorkoutLog } from "@/lib/domain/workout-log";
 
 // Spec LOG-02 bounds. Each field's message names the field, so the form can say which one is
-// invalid. Pace is typed as mm:ss (per km) and must come out positive.
-const PACE_PATTERN = /^(\d{1,2}):([0-5]\d)$/;
-
+// invalid. The pace is not typed: it comes from distance and duration (AD-007).
 const logSchema = z.object({
-  pace: z
-    .string()
-    .trim()
-    .regex(PACE_PATTERN, "Pace inválido: use o formato mm:ss por km (ex.: 5:30).")
-    .transform((text) => {
-      const [, minutes, seconds] = PACE_PATTERN.exec(text)!;
-      return Number(minutes) * 60 + Number(seconds);
-    })
-    .refine((secPerKm) => secPerKm > 0, "Pace inválido: precisa ser maior que 0:00."),
   distanceKm: z.coerce
     .number({ invalid_type_error: "Distância inválida: informe um número em km." })
     .gt(0, "Distância inválida: precisa ser maior que 0 km.")
@@ -46,7 +36,6 @@ function field(formData: FormData, name: string): string | undefined {
 
 export async function submitWorkoutLog(sessionId: string, formData: FormData): Promise<void> {
   const parsed = logSchema.safeParse({
-    pace: field(formData, "pace") ?? "",
     distanceKm: field(formData, "distanceKm"),
     durationMin: field(formData, "durationMin"),
     rpe: field(formData, "rpe"),
@@ -61,7 +50,7 @@ export async function submitWorkoutLog(sessionId: string, formData: FormData): P
   const notes = z.string().nullable().catch(null).parse(formData.get("notes"));
   try {
     await saveWorkoutLog(sessionId, {
-      actualPaceSecPerKm: parsed.data.pace,
+      actualPaceSecPerKm: paceFromRun(parsed.data.distanceKm, parsed.data.durationMin)!,
       actualDistanceKm: parsed.data.distanceKm,
       actualDurationMin: parsed.data.durationMin,
       rpe: parsed.data.rpe,

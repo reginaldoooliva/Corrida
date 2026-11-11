@@ -50,4 +50,12 @@
 - **Date**: 2026-11-11
 - **Status**: active
 
+### AD-007
+- **Decision**: O pace real não é digitado: é a duração dividida pela distância (segundos por km, arredondado), mostrado no formulário enquanto o corredor digita e gravado em `actualPaceSecPerKm` pela Server Action (`paceFromRun`, `lib/domain/pace.ts`). Substitui o campo "Pace (mm:ss por km)" de `LOG-01`/`LOG-02`.
+- **Reason**: Pedido do usuário: "o Pace é calculado pelo tempo da atividade dividido pela distância [...] remova a necessidade de colocar o Pace e mostre o Pace após eu digitar os valores de distância e tempo" - o teclado numérico do celular não tem ":", então o campo não podia ser preenchido.
+- **Trade-off**: A duração é em minutos inteiros, então o pace calculado tem precisão de alguns segundos por km (1 min em 8 km = 7,5 s/km).
+- **Scope**: `coach-virtual` (registro do treino) e o painel/histórico que mostram o pace real.
+- **Date**: 2026-11-11
+- **Status**: active
+
 ## Handoff

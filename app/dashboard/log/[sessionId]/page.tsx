@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ArrowLeftIcon } from "@/components/icons";
+import { RunFields } from "@/components/run-fields";
 import { RpePicker } from "@/components/rpe-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { formatPace, formatSessionDay, SESSION_LABEL } from "@/lib/format";
@@ -19,8 +20,8 @@ interface LogPageProps {
   searchParams: Promise<{ error?: string }>;
 }
 
-// Spec LOG-01/02: the workout log form for one session - pace, distance, duration and RPE. The
-// form skips the browser's own validation (noValidate) so the LOG-02 bounds are enforced, and
+// Spec LOG-01/02: the workout log form for one session - distance, duration (the pace shown from
+// them, AD-007) and RPE. The form skips the browser's own validation (noValidate) so the LOG-02 bounds are enforced, and
 // their errors named, by the Server Action in every case.
 export default async function LogPage({ params, searchParams }: LogPageProps) {
   const { sessionId } = await params;
@@ -35,9 +36,6 @@ export default async function LogPage({ params, searchParams }: LogPageProps) {
   const removeAction = removeWorkoutLog.bind(null, sessionId);
   // Spec LOG-03: an existing log pre-fills the form; saving overwrites it.
   const log = session.workoutLog;
-  const pace = log
-    ? `${Math.floor(log.actualPaceSecPerKm / 60)}:${String(log.actualPaceSecPerKm % 60).padStart(2, "0")}`
-    : undefined;
 
   return (
     <main className="page" style={{ maxWidth: 480 }}>
@@ -71,23 +69,7 @@ export default async function LogPage({ params, searchParams }: LogPageProps) {
         </p>
       )}
       <form action={submitAction} noValidate className="card form">
-        <label className="field">
-          Pace (mm:ss por km)
-          <input name="pace" type="text" inputMode="numeric" placeholder="5:30" defaultValue={pace} aria-describedby="pace-hint" />
-        </label>
-        <span id="pace-hint" className="hint" style={{ marginTop: -10 }}>
-          Pace médio do treino, por exemplo 5:30.
-        </span>
-        <div className="field-row">
-          <label className="field">
-            Distância (km)
-            <input name="distanceKm" type="number" inputMode="decimal" step="0.01" defaultValue={log?.actualDistanceKm} />
-          </label>
-          <label className="field">
-            Duração (min)
-            <input name="durationMin" type="number" inputMode="numeric" step="1" defaultValue={log?.actualDurationMin} />
-          </label>
-        </div>
+        <RunFields distanceKm={log?.actualDistanceKm} durationMin={log?.actualDurationMin} />
         <RpePicker defaultValue={log?.rpe} />
         {/* Spec NOTE-01/04: an optional note, pre-filled when editing. Its 500-character limit is
             checked on save (NOTE-02), so a longer paste gets the error instead of being cut. */}

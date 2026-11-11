@@ -17,7 +17,6 @@ async function firstSession(planId: string) {
 
 async function logWithNote(page: Page, sessionId: string, note: string) {
   await page.goto(`/dashboard/log/${sessionId}`);
-  await page.getByLabel("Pace (mm:ss por km)").fill("5:10");
   await page.getByLabel("Distância (km)").fill("8");
   await page.getByLabel("Duração (min)").fill("41");
   await page.getByRole("radio", { name: /^RPE 6:/ }).check();

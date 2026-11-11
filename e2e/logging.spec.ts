@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
   await login(page);
 });
 
-const VALID = { pace: "5:10", distanceKm: "8", durationMin: "41", rpe: "6" };
+const VALID = { distanceKm: "8", durationMin: "41", rpe: "6" };
 
 async function firstUnloggedSession(planId: string) {
   const week = await prisma.week.findFirstOrThrow({ where: { planId }, orderBy: { weekNumber: "asc" } });
@@ -36,7 +36,6 @@ async function pickRpe(page: Page, rpe: string) {
 }
 
 async function fillLogForm(page: Page, values: typeof VALID) {
-  await page.getByLabel("Pace (mm:ss por km)").fill(values.pace);
   await page.getByLabel("Distância (km)").fill(values.distanceKm);
   await page.getByLabel("Duração (min)").fill(values.durationMin);
   await pickRpe(page, values.rpe);
@@ -58,9 +57,10 @@ test("submitting a valid workout log marks the session done", async ({ page }) =
   await expect(page).toHaveURL(/\/dashboard$/);
   const updatedRow = page.getByRole("listitem").filter({ hasText: date });
   await expect(updatedRow).toContainText("Feito");
-  await expect(updatedRow).toContainText("Pace real: 5:10/km");
+  // 41 min over 8 km is 307.5 s/km, stored as 308 (5:08/km).
+  await expect(updatedRow).toContainText("Pace real: 5:08/km");
   const log = await prisma.workoutLog.findUniqueOrThrow({ where: { sessionId: session.id } });
-  expect(log).toMatchObject({ actualPaceSecPerKm: 310, actualDistanceKm: 8, actualDurationMin: 41, rpe: 6 });
+  expect(log).toMatchObject({ actualPaceSecPerKm: 308, actualDistanceKm: 8, actualDurationMin: 41, rpe: 6 });
 });
 
 test("an out-of-range field is rejected and named in the error", async ({ page }) => {
@@ -75,8 +75,6 @@ test("an out-of-range field is rejected and named in the error", async ({ page }
     { values: { ...VALID, distanceKm: "0" }, field: "Distância" },
     { values: { ...VALID, durationMin: "601" }, field: "Duração" },
     { values: { ...VALID, durationMin: "0" }, field: "Duração" },
-    { values: { ...VALID, pace: "abc" }, field: "Pace" },
-    { values: { ...VALID, pace: "0:00" }, field: "Pace" },
     { values: { ...VALID, rpe: "11" }, field: "RPE" },
     { values: { ...VALID, rpe: "0" }, field: "RPE" },
     { values: { ...VALID, rpe: "5.5" }, field: "RPE" },
@@ -87,7 +85,7 @@ test("an out-of-range field is rejected and named in the error", async ({ page }
     await fillLogForm(page, values);
     const alert = page.getByRole("main").getByRole("alert");
     await expect(alert, JSON.stringify(values)).toContainText(`${field} inválid`);
-    for (const other of ["Distância", "Duração", "Pace", "RPE"].filter((f) => f !== field)) {
+    for (const other of ["Distância", "Duração", "RPE"].filter((f) => f !== field)) {
       await expect(alert, JSON.stringify(values)).not.toContainText(other);
     }
   }
@@ -108,17 +106,19 @@ test("editing a log overwrites its stored values", async ({ page }) => {
   await row.getByRole("link", { name: "Editar registro" }).click();
   await expect(page.getByRole("heading", { name: "Editar registro" })).toBeVisible();
   // The form shows the stored values before they are overwritten.
-  await expect(page.getByLabel("Pace (mm:ss por km)")).toHaveValue("5:00");
+  await expect(page.getByLabel("Distância (km)")).toHaveValue("5");
+  await expect(page.getByLabel("Duração (min)")).toHaveValue("25");
+  await expect(page.getByRole("status", { name: "Pace calculado" })).toContainText("5:00/km");
   await expect(page.getByRole("radio", { name: /^RPE 5:/ })).toBeChecked();
-  await fillLogForm(page, { pace: "4:50", distanceKm: "10.5", durationMin: "51", rpe: "8" });
+  await fillLogForm(page, { distanceKm: "10.5", durationMin: "51", rpe: "8" });
 
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByRole("listitem").filter({ hasText: dayOf(session.date) })).toContainText(
-    "Pace real: 4:50/km",
+    "Pace real: 4:51/km", // 51 min over 10.5 km is 291.4 s/km
   );
   const logs = await prisma.workoutLog.findMany({ where: { sessionId: session.id } });
   expect(logs).toHaveLength(1);
-  expect(logs[0]).toMatchObject({ actualPaceSecPerKm: 290, actualDistanceKm: 10.5, actualDurationMin: 51, rpe: 8 });
+  expect(logs[0]).toMatchObject({ actualPaceSecPerKm: 291, actualDistanceKm: 10.5, actualDurationMin: 51, rpe: 8 });
 });
 
 test("deleting a log reverts the session to pending or missed", async ({ page }) => {
@@ -168,7 +168,7 @@ test("a session in an already-reassessed week can still be logged, edited and de
   await fillLogForm(page, VALID);
   await expect(page).toHaveURL(/\/dashboard$/);
   expect(await prisma.workoutLog.findUnique({ where: { sessionId: session.id } })).toMatchObject({
-    actualPaceSecPerKm: 310,
+    actualPaceSecPerKm: 308, // 41 min over 8 km
     rpe: 6,
   });
 
@@ -182,4 +182,25 @@ test("a session in an already-reassessed week can still be logged, edited and de
   await page.getByRole("button", { name: "Apagar registro" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   expect(await prisma.workoutLog.count({ where: { sessionId: session.id } })).toBe(0);
+});
+
+test("the pace is not typed: it shows as distance and duration are typed", async ({ page }) => {
+  const userId = await getSeededUserId();
+  const { planId } = await seedActivePlan(userId);
+  const session = await firstUnloggedSession(planId);
+
+  await page.goto(`/dashboard/log/${session.id}`);
+  await expect(page.locator('input[name="pace"]')).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: /Pace/ })).toHaveCount(0);
+  const pace = page.getByRole("status", { name: "Pace calculado" });
+  await expect(pace).toContainText("Informe distância e duração");
+
+  await page.getByLabel("Distância (km)").fill("10");
+  await expect(pace).toContainText("Informe distância e duração");
+  await page.getByLabel("Duração (min)").fill("52");
+  await expect(pace).toContainText("5:12/km");
+  await page.getByLabel("Distância (km)").fill("8");
+  await expect(pace).toContainText("6:30/km");
+  await page.getByLabel("Duração (min)").fill("");
+  await expect(pace).toContainText("Informe distância e duração");
 });
