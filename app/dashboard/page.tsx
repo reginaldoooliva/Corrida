@@ -256,6 +256,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                       </span>
                     </p>
                   )}
+                  {/* Spec NOTE-05: the note written when logging. */}
+                  {log?.notes && (
+                    <p className="muted" style={{ fontSize: 14, overflowWrap: "anywhere" }}>
+                      <span className="sr-only">Observação: </span>
+                      {log.notes}
+                    </p>
+                  )}
                   <Link
                     href={`/dashboard/log/${session.id}`}
                     className={log ? "btn btn-secondary btn-block" : "btn btn-block"}

@@ -262,7 +262,7 @@ no campo ao editar; apagar o texto e ver o campo vazio de novo.
 | NOTE-02 | P1: Observação | T18 | Done |
 | NOTE-03 | P1: Observação | T9 | Done |
 | NOTE-04 | P1: Observação | T18 | Done |
-| NOTE-05 | P1: Observação | Design | Pending |
+| NOTE-05 | P1: Observação | T19 | Done |
 
 **Coverage:** 34 total, 0 mapped to tasks, 34 unmapped ⚠️ (tasks not written yet)
 

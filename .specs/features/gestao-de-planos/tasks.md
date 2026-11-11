@@ -429,8 +429,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] e2e: the note text is on the card
-- [ ] Gate check passes: `npm run build && npm run typecheck && npm run lint && npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
+- [x] e2e: the note text is on the card
+- [x] Gate check passes: `npm run build && npm run typecheck && npm run lint && npx vitest run lib/domain --reporter=verbose && npx playwright test --reporter=list`
 
 **Tests**: e2e
 **Gate**: build

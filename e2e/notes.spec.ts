@@ -58,3 +58,15 @@ test("editing a log shows its saved note in the field", async ({ page }) => {
   await expect(page.getByLabel("Observação (opcional)")).toHaveValue("Dor leve na panturrilha.");
 });
 
+test("the dashboard card shows the note of a logged session", async ({ page }) => {
+  const { planId } = await seedActivePlan(await getSeededUserId(), { daysAgo: 3 });
+  const session = await firstSession(planId);
+  await logWorkout(session.id);
+  await prisma.workoutLog.update({ where: { sessionId: session.id }, data: { notes: "Treino na esteira." } });
+
+  await page.goto("/dashboard");
+
+  const card = page.getByRole("listitem").filter({ has: page.locator(`a[href="/dashboard/log/${session.id}"]`) });
+  await expect(card).toContainText("Treino na esteira.");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
