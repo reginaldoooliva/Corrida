@@ -194,6 +194,29 @@ export async function followPlan(
   return "active";
 }
 
+export interface PlanSummary {
+  id: string;
+  raceType: RaceType;
+  raceDate: Date;
+  weeks: number;
+  status: PlanStatus;
+}
+
+// Spec PLANS-05/10: the plans screen - every active or paused plan with its race, race date and week
+// count, the followed one first, then by creation. Plans whose race has passed are archived first.
+export async function listPlans(userId: string, today: Date): Promise<PlanSummary[]> {
+  await archivePastPlans(userId, today);
+  const plans = await prisma.plan.findMany({
+    where: { userId, status: { in: KEPT_STATUSES } },
+    orderBy: { createdAt: "asc" },
+    include: { weeks: { select: { id: true } } },
+  });
+  const rank = (status: PlanStatus) => (status === PlanStatus.ACTIVE ? 0 : 1);
+  return plans
+    .map((p) => ({ id: p.id, raceType: p.raceType, raceDate: p.raceDate, weeks: p.weeks.length, status: p.status }))
+    .sort((a, b) => rank(a.status) - rank(b.status));
+}
+
 export const RACE_DATE_ERROR = "A data da prova precisa ser depois da semana de treino atual.";
 
 // Spec EDIT-01..03: rebuild the plan from the week containing `today` onwards with the plan's

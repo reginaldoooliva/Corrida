@@ -88,6 +88,10 @@ const { db, emptyStore, modelsFor } = vi.hoisted(() => {
           return plan ? clone(plan) : null;
         },
         count: async ({ where }: { where: Row }) => store.plans.filter(matches(where)).length,
+        findMany: async ({ where, include }: { where: Row; include?: { weeks?: unknown } }) =>
+          store.plans.filter(matches(where)).map((p) =>
+            clone(include?.weeks ? { ...p, weeks: store.weeks.filter((w) => w.planId === p.id) } : p),
+          ),
         updateMany: async ({ where, data }: { where: Row; data: Row }) => {
           const hit = store.plans.filter(matches(where));
           for (const plan of hit) Object.assign(plan, data);
@@ -202,6 +206,7 @@ import {
   followPlan,
   initialVdotForNewPlan,
   isPlausibleRaceTime,
+  listPlans,
   PLAN_LIMIT_ERROR,
   PlanConflictError,
   PlanLimitError,
@@ -524,6 +529,34 @@ describe("plan-lifecycle", () => {
 
       expect(db).toEqual(before);
       expect(db.plans.filter((p) => p.status === PlanStatus.ACTIVE).map((p) => p.id)).toEqual([activeId]);
+    });
+  });
+
+  describe("listPlans", () => {
+    it("listPlans returns active and paused plans with race, date, weeks and status, the active first", async () => {
+      const base = {
+        userId: "user-1",
+        daysPerWeek: [1, 3, 6] as Weekday[],
+        vdotSource: VdotSource.MANUAL,
+        result: { distanceKm: 5, timeSec: 21 * 60 + 25 },
+        today: TODAY,
+      };
+      const half = (await createNewPlan({ ...base, raceType: RaceType.HALF, raceDate: new Date("2027-03-20T00:00:00Z") })).plan;
+      const fiveK = (await createNewPlan({ ...base, raceType: RaceType.FIVE_K, raceDate: new Date("2027-01-09T00:00:00Z") })).plan;
+      // A paused plan whose race was yesterday is archived on the way; an archived one stays out.
+      const pastPaused = seedPlan({ status: PlanStatus.PAUSED, raceDate: new Date("2026-11-06T00:00:00Z") });
+      seedPlan({ status: PlanStatus.ARCHIVED });
+      seedPlan({ status: PlanStatus.PAUSED, userId: "user-2" });
+      // The half was created first and paused by the 5K, which is now followed.
+      await followPlan("user-1", half.id, TODAY);
+
+      const plans = await listPlans("user-1", TODAY);
+
+      expect(plans).toEqual([
+        { id: half.id, raceType: RaceType.HALF, raceDate: new Date("2027-03-20T00:00:00Z"), weeks: 19, status: PlanStatus.ACTIVE },
+        { id: fiveK.id, raceType: RaceType.FIVE_K, raceDate: new Date("2027-01-09T00:00:00Z"), weeks: 9, status: PlanStatus.PAUSED },
+      ]);
+      expect(db.plans.find((p) => p.id === pastPaused.id)?.status).toBe(PlanStatus.ARCHIVED);
     });
   });
 

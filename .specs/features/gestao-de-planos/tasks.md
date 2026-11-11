@@ -163,8 +163,8 @@ T14 → T15 → T16 → T17 → T18 → T19
 
 **Done when**:
 
-- [ ] Unit test: fields, order, archived plans left out, past paused plan archived on the way
-- [ ] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
+- [x] Unit test: fields, order, archived plans left out, past paused plan archived on the way
+- [x] Gate check passes: `npx vitest run lib/domain --reporter=verbose`
 
 **Tests**: unit
 **Gate**: quick
