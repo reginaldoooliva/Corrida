@@ -46,6 +46,14 @@ describe("workout-log", () => {
     expect(() => parseNotes("a".repeat(501))).toThrow(NOTES_ERROR);
   });
 
+  it("parseNotes counts characters, not UTF-16 units: emoji and decomposed accents count as one", () => {
+    expect(parseNotes("🏃".repeat(500))).toBe("🏃".repeat(500));
+    expect(() => parseNotes("🏃".repeat(501))).toThrow(NOTES_ERROR);
+    const decomposed = "é"; // "é" written as "e" + combining acute accent
+    expect(parseNotes(decomposed.repeat(500))).toBe("é".repeat(500));
+    expect(() => parseNotes(decomposed.repeat(501))).toThrow(NOTES_ERROR);
+  });
+
   it("saveWorkoutLog saves the note in WorkoutLog.notes, and a blank one as null", async () => {
     await saveWorkoutLog("s1", { ...RUN, notes: " calor forte " });
     expect(logs.get("s1")).toMatchObject({ ...RUN, notes: "calor forte" });
