@@ -1,9 +1,9 @@
 # gestao-de-planos proofs
 
-**HEAD**: 89e9591
-**Tree**: dirty - docs/design/1000658478.jpg
+**HEAD**: cfd2b01
+**Tree**: clean
 **Shell**: C:/Program Files/Git\bin\bash.exe
-**Result**: 39 pass, 0 fail
+**Result**: 42 pass, 0 fail
 
 | Check | Proof | Result |
 | --- | --- | --- |
@@ -43,6 +43,9 @@
 | C34 | `run e2e / ok notes.spec.ts › the dashboard card shows the note of a logged session` | pass |
 | C35 | `run e2e / ok delete.spec.ts › the delete confirmation sits centered and whole on a phone screen` | pass |
 | C36 | `run e2e / ok plans.spec.ts › with three plans the history fits a phone screen and its plan tabs scroll` | pass |
+| C37 | `run unit / ✓ plan-lifecycle > editPlan never brings back a deleted session, with a new race date or new days` | pass |
+| C38 | `run unit / ✓ weekly-adjustment > maintain matches sessions by weekday when either week has a deleted session` | pass |
+| C39 | `run unit / ✓ workout-log > parseNotes counts characters, not UTF-16 units: emoji and decomposed accents count ` | pass |
 | Build | `npm run build` | pass |
 | Build | `npm run typecheck` | pass |
 | Build | `npm run lint` | pass |
@@ -52,19 +55,19 @@
 `Run unit` - exit 0
 
 ```
- ✓ lib/domain/plan-lifecycle.test.ts > plan-lifecycle > recalculateFromCurrentWeek > editPlan keeps every logged session with its log on its date and adds no session on that day
  ✓ lib/domain/plan-lifecycle.test.ts > plan-lifecycle > recalculateFromCurrentWeek > editPlan derives the regenerated paces from currentVdot
  ✓ lib/domain/plan-lifecycle.test.ts > plan-lifecycle > recalculateFromCurrentWeek > editPlan keeps every reassessed week reassessed
  ✓ lib/domain/plan-lifecycle.test.ts > plan-lifecycle > recalculateFromCurrentWeek > editPlan refuses a race date that leaves fewer weeks than the current one
+ ✓ lib/domain/plan-lifecycle.test.ts > plan-lifecycle > recalculateFromCurrentWeek > editPlan never brings back a deleted session, with a new race date or new days
  ✓ lib/domain/plan-lifecycle.test.ts > plan-lifecycle > recalculateFromCurrentWeek > editPlan with an earlier race date drops the weeks past the new end
  ✓ lib/domain/auth.test.ts > auth > verifyCredentials > returns null for incorrect credentials
  ✓ lib/domain/auth.test.ts > auth > stored passwordHash is bcrypt, never the plaintext password
  ✓ lib/domain/auth.test.ts > auth > getSeededUserId > returns the id of the single seeded account
 
  Test Files  8 passed (8)
-      Tests  111 passed (111)
-   Start at  01:26:13
-   Duration  1.09s (transform 697ms, setup 0ms, collect 1.37s, tests 713ms, environment 2ms, prepare 1.42s)
+      Tests  114 passed (114)
+   Start at  01:53:27
+   Duration  1.15s (transform 789ms, setup 0ms, collect 1.57s, tests 704ms, environment 2ms, prepare 1.42s)
 
 The CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.
 ```
@@ -72,19 +75,19 @@ The CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troub
 `Run e2e` - exit 0
 
 ```
-  ok 16 e2e\plans.spec.ts:83:1 › the dashboard shows the current week of the plan just followed (54.8s)
-  ok 17 e2e\plans.spec.ts:107:1 › a fourth plan is refused with the 3-plan message (53.3s)
-  ok 18 e2e\plans.spec.ts:129:1 › the dashboard never reassesses or prompts a retest for a paused plan (45.2s)
-  ok 19 e2e\plans.spec.ts:146:1 › opening the plans screen or the dashboard archives a paused plan whose race has passed (58.4s)
-  ok 20 e2e\plans.spec.ts:169:1 › with only paused plans the dashboard shows the empty state linking to the plans screen (25.1s)
-  ok 21 e2e\plans.spec.ts:181:1 › settings links to the plans screen (26.0s)
-  ok 22 e2e\plans.spec.ts:195:1 › with three plans the history fits a phone screen and its plan tabs scroll (50.1s)
-  ok 23 e2e\recalc.spec.ts:15:1 › postponing the race from settings rebuilds every week from the first (39.6s)
+  ok 16 e2e\plans.spec.ts:83:1 › the dashboard shows the current week of the plan just followed (55.8s)
+  ok 17 e2e\plans.spec.ts:107:1 › a fourth plan is refused with the 3-plan message (54.4s)
+  ok 18 e2e\plans.spec.ts:129:1 › the dashboard never reassesses or prompts a retest for a paused plan (47.3s)
+  ok 19 e2e\plans.spec.ts:146:1 › opening the plans screen or the dashboard archives a paused plan whose race has passed (1.0m)
+  ok 20 e2e\plans.spec.ts:169:1 › with only paused plans the dashboard shows the empty state linking to the plans screen (26.1s)
+  ok 21 e2e\plans.spec.ts:181:1 › settings links to the plans screen (27.0s)
+  ok 22 e2e\plans.spec.ts:195:1 › with three plans the history fits a phone screen and its plan tabs scroll (51.2s)
+  ok 23 e2e\recalc.spec.ts:15:1 › postponing the race from settings rebuilds every week from the first (41.1s)
 
-  Slow test file: e2e\plans.spec.ts (6.6m)
-  Slow test file: e2e\delete.spec.ts (6.3m)
+  Slow test file: e2e\plans.spec.ts (6.8m)
+  Slow test file: e2e\delete.spec.ts (6.2m)
   Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
-  23 passed (15.4m)
+  23 passed (15.6m)
 [WebServer] [next-auth][warn][NEXTAUTH_URL] 
 [WebServer] https://next-auth.js.org/warnings#nextauth_url
 ```
