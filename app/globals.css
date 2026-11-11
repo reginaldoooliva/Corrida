@@ -516,6 +516,82 @@ legend {
   color: var(--on-primary-container);
 }
 
+/* RPE picker: ten runners, from an easy jog (1) to an all-out sprint (10). */
+.rpe-field legend {
+  margin-bottom: 0;
+}
+
+.rpe-scale {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rpe-scale label.rpe-option {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-height: 72px;
+  padding: 6px 2px 4px;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
+  background: var(--surface-card);
+  transition:
+    background-color var(--ease-state),
+    border-color var(--ease-state),
+    transform var(--ease-state);
+}
+
+/* The native radio covers the whole tile: it stays clickable and focusable, just invisible. */
+.rpe-option input[type="radio"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.rpe-option svg,
+.rpe-num {
+  pointer-events: none;
+}
+
+.rpe-option svg {
+  transition: opacity var(--ease-state);
+}
+
+.rpe-num {
+  font: 600 13px/16px var(--font-metric);
+  color: var(--on-surface-variant);
+}
+
+.rpe-option:active {
+  transform: scale(0.96);
+}
+
+.rpe-option:has(input:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.rpe-option:has(input:checked) {
+  background: var(--primary-container);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.rpe-option:has(input:checked) .rpe-num {
+  color: var(--on-primary-container);
+}
+
+.rpe-scale:has(input:checked) .rpe-option:not(:has(input:checked)) svg {
+  opacity: 0.45;
+}
+
 .race-options {
   display: grid;
   grid-template-columns: 1fr 1fr;

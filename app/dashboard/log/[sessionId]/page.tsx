@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ArrowLeftIcon } from "@/components/icons";
+import { RpePicker } from "@/components/rpe-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { formatPace, formatSessionDay, SESSION_LABEL } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -82,13 +83,7 @@ export default async function LogPage({ params, searchParams }: LogPageProps) {
             <input name="durationMin" type="number" inputMode="numeric" step="1" defaultValue={log?.actualDurationMin} />
           </label>
         </div>
-        <label className="field">
-          RPE (1 a 10)
-          <input name="rpe" type="number" inputMode="numeric" step="1" defaultValue={log?.rpe} aria-describedby="rpe-hint" />
-        </label>
-        <span id="rpe-hint" className="hint" style={{ marginTop: -10 }}>
-          Esforço percebido: 1 muito leve, 10 esforço máximo.
-        </span>
+        <RpePicker defaultValue={log?.rpe} />
         <SubmitButton pendingText="Salvando..." className="btn-block">
           Salvar registro
         </SubmitButton>

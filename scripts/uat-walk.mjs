@@ -123,7 +123,7 @@ try {
     await page.getByLabel(/Pace/).fill(`${Math.floor(slow / 60)}:${String(slow % 60).padStart(2, "0")}`);
     await page.getByLabel("Distância (km)").fill(String(km));
     await page.getByLabel("Duração (min)").fill(String(Math.round((km * slow) / 60)));
-    await page.getByLabel(/RPE/).fill("9");
+    await page.getByRole("radio", { name: /^RPE 9:/ }).check();
     await page.getByRole("button", { name: "Salvar registro" }).click();
     await page.waitForURL(/\/dashboard$/);
   }

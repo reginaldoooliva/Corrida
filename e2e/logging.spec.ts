@@ -21,11 +21,25 @@ async function firstUnloggedSession(planId: string) {
   });
 }
 
+// RPE is picked from ten runners (radios named "RPE n: ..."). A value the picker cannot offer is
+// posted by rewriting one radio's value, as a tampered request would, so the Server Action's
+// LOG-02 bound is still exercised.
+async function pickRpe(page: Page, rpe: string) {
+  if (/^([1-9]|10)$/.test(rpe)) {
+    await page.getByRole("radio", { name: new RegExp(`^RPE ${rpe}:`) }).check();
+    return;
+  }
+  const radio = page.getByRole("radio", { name: /^RPE 1:/ });
+  // Check first: React restores a radio's value from its props when the radio changes.
+  await radio.check();
+  await radio.evaluate((el, value) => ((el as HTMLInputElement).value = value), rpe);
+}
+
 async function fillLogForm(page: Page, values: typeof VALID) {
   await page.getByLabel("Pace (mm:ss por km)").fill(values.pace);
   await page.getByLabel("Distância (km)").fill(values.distanceKm);
   await page.getByLabel("Duração (min)").fill(values.durationMin);
-  await page.getByLabel("RPE (1 a 10)").fill(values.rpe);
+  await pickRpe(page, values.rpe);
   await page.getByRole("button", { name: "Salvar registro" }).click();
 }
 
@@ -95,7 +109,7 @@ test("editing a log overwrites its stored values", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Editar registro" })).toBeVisible();
   // The form shows the stored values before they are overwritten.
   await expect(page.getByLabel("Pace (mm:ss por km)")).toHaveValue("5:00");
-  await expect(page.getByLabel("RPE (1 a 10)")).toHaveValue("5");
+  await expect(page.getByRole("radio", { name: /^RPE 5:/ })).toBeChecked();
   await fillLogForm(page, { pace: "4:50", distanceKm: "10.5", durationMin: "51", rpe: "8" });
 
   await expect(page).toHaveURL(/\/dashboard$/);
@@ -159,7 +173,7 @@ test("a session in an already-reassessed week can still be logged, edited and de
   });
 
   await page.goto(`/dashboard/log/${session.id}`);
-  await expect(page.getByLabel("RPE (1 a 10)")).toHaveValue("6");
+  await expect(page.getByRole("radio", { name: /^RPE 6:/ })).toBeChecked();
   await fillLogForm(page, { ...VALID, rpe: "9" });
   await expect(page).toHaveURL(/\/dashboard$/);
   expect(await prisma.workoutLog.findUnique({ where: { sessionId: session.id } })).toMatchObject({ rpe: 9 });
